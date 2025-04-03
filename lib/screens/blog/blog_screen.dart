@@ -55,44 +55,60 @@ class BlogPage extends StatelessWidget {
             itemBuilder: (context, index) {
               final blog = blogs[index];
               return Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10.0),
-                      child: Image.network(
-                        blog.imageUrl,
-                        width: double.infinity,
-                        height: 150,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const SizedBox(
-                            height: 150,
-                            width: double.infinity,
-                            child: Center(
-                                child: Text('Image could not be loaded')),
-                          );
-                        },
+                padding: const EdgeInsets.all(8.0), // Overall padding for the list item
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(15.0), // Rounded corners
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.3),
+                        spreadRadius: 2,
+                        blurRadius: 5,
+                        offset: const Offset(0, 3), // changes position of shadow
                       ),
-                    ),
-                    const SizedBox(height: 8.0),
-                    Text(
-                      blog.title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16.0,
-                        color: Colors.black,
+                    ],
+                  ),
+                  margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0), // Margin around the container
+                  padding: const EdgeInsets.all(16.0), // Padding inside the container
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10.0),
+                        child: Image.network(
+                          blog.imageUrl,
+                          width: double.infinity,
+                          height: 150,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const SizedBox(
+                              height: 150,
+                              width: double.infinity,
+                              child: Center(
+                                  child: Text('Image could not be loaded')),
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4.0),
-                    Text(
-                      blog.body.length > 150
-                          ? '${blog.body.substring(0, 150)}...'
-                          : blog.body,
-                      style: const TextStyle(color: Colors.black87),
-                    ),
-                  ],
+                      const SizedBox(height: 12.0), // Increased spacing
+                      Text(
+                        blog.title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18.0, // Increased font size
+                          color: Colors.black,
+                        ),
+                      ),
+                      const SizedBox(height: 8.0), // Increased spacing
+                      Text(
+                        blog.body.length > 150
+                            ? '${blog.body.substring(0, 150)}...'
+                            : blog.body,
+                        style: const TextStyle(color: Colors.black87, fontSize: 14.0), // Slightly increased font size
+                      ),
+                    ],
+                  ),
                 ),
               );
             },

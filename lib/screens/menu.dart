@@ -1,6 +1,7 @@
 import 'package:auth_bloc/screens/blog/blog_screen.dart';
 import 'package:auth_bloc/screens/epaludismo/epaludismo_screen.dart';
 import 'package:auth_bloc/screens/profile/profile.dart';
+import 'package:auth_bloc/screens/quiz/quiz_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:auth_bloc/logic/cubit/auth_cubit.dart';
@@ -49,20 +50,15 @@ Widget buildAppDrawer(BuildContext context) {
             },
           ),
           ListTile(
-            leading: Icon(Icons.settings_outlined,
-                color: Colors.red), // Match the icon from the image
-            title: Text('Definições', style: TextStyle(color: Colors.red)),
-            onTap: () {
-              Navigator.pop(context); // Close the drawer
-              // Handle Definições action
-            },
-          ),
-          ListTile(
             leading: Icon(Icons.question_mark_outlined,
                 color: Colors.red), // Using a question mark icon for Quiz
             title: Text('Quiz', style: TextStyle(color: Colors.red)),
             onTap: () {
-              Navigator.pop(context); // Close the drawer
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          MalariaQuizScreen())); // Close the drawer
               // Handle Quiz action
             },
           ),

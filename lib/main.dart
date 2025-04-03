@@ -47,7 +47,7 @@ Future<void> main() async {
 
   runApp(
     DevicePreview(
-      enabled: false, // kDebugMode, // Enable only in debug mode if desired
+      enabled: true, // kDebugMode, // Enable only in debug mode if desired
       builder: (context) => MyApp(router: AppRouter()),
     ),
   );

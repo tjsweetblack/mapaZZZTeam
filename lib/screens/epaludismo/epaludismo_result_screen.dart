@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MalariaResultScreen extends StatefulWidget {
   final String symptomsDescription;
@@ -55,7 +56,7 @@ class _MalariaResultScreenState extends State<MalariaResultScreen> {
     final chat = model.startChat(history: [
       Content.multi([
         TextPart(
-            'Based on the following symptoms: "${widget.symptomsDescription}", what is the probability (as a percentage) that the person has malaria? Please give a rough estimate and output the percentage number followed by a very breve explicação em português de por que você deu essa porcentagem (uma ou duas frases curtas).'),
+            'Based on the following symptoms: "${widget.symptomsDescription}", what is the probability (as a percentage) that the person has malaria? Please give a rough estimate and output the percentage number followed by a very breve explicação em português de por que você deu essa porcentagem (uma ou duas frases curtas) nao fale de nenhuma doenca alem de malaria.'),
       ]),
     ]);
 
@@ -211,8 +212,15 @@ class _MalariaResultScreenState extends State<MalariaResultScreen> {
               ),
               // const Spacer(), // Removed this line
               ElevatedButton(
-                onPressed: () {
-                  // Handle emergency contact action
+                onPressed: () async {
+                  final Uri phoneUri = Uri(scheme: 'tel', path: '111');
+                  if (await canLaunchUrl(phoneUri)) {
+                    await launchUrl(phoneUri);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Could not launch phone.')),
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red[300],
