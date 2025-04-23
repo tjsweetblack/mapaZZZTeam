@@ -1,6 +1,8 @@
 import 'package:auth_bloc/helpers/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_sign_in/google_sign_in.dart'; // Import Google Sign In
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../../logic/cubit/auth_cubit.dart';
 import '../../../routing/routes.dart';
@@ -16,6 +18,21 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // Add GoogleSignIn instance
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+      clientId:
+          '734479508053-a9sa98cmb27dljbj2h08r1omsocc2pij.apps.googleusercontent.com');
+
+  @override
+  void initState() {
+    super.initState();
+    // Register web plugins, this is necessary for google sign in on web.
+    //if (kIsWeb) { //Remove kIsWeb.
+    //  registerWebViewInitializer(); //Use the new register function
+    //}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -169,7 +186,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -192,7 +209,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ],
-            ),
+            ),            
           ],
         ),
       ),
@@ -221,6 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
           TextButton(
             onPressed: () {
               print(message);
+              Navigator.pop(context); // Close the dialog
             },
             child: const Text('OK'),
           ),

@@ -1,7 +1,5 @@
-import 'package:auth_bloc/helpers/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../logic/cubit/auth_cubit.dart';
 import '../../../routing/routes.dart';
@@ -22,7 +20,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE8E8E8), // Match background color
+      backgroundColor:
+          const Color.fromARGB(255, 255, 255, 255), // Match background color
+      appBar: AppBar(
+        //Added AppBar for back button
+        backgroundColor:
+            Colors.transparent, // Make AppBar background transparent
+        elevation: 0, // Remove shadow
+        iconTheme:
+            const IconThemeData(color: Colors.black), // Set back button color
+      ),
       body: BlocConsumer<AuthCubit, AuthState>(
         listener: (context, state) async {
           if (state is AuthLoading) {
@@ -162,14 +169,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     // context.read<AuthCubit>().checkEmailOrPhone(emailPhoneController.text);
                   },
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    textStyle: const TextStyle(fontSize: 16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8.0)),
-                    backgroundColor:
-                        const Color(0xFFE32626), // Match button color
-                    foregroundColor: Colors.white, // Match button text color
-                  ),
+                      minimumSize: const Size(double.infinity, 50),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      textStyle: const TextStyle(fontSize: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(110.0),
+                      ),
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white),
                   child: const Text(
                     "Continuar",
                     style: TextStyle(fontWeight: FontWeight.bold),
@@ -177,10 +184,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-              const Text(
-                "One un cotto cx DOUBL", // Match bottom text
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
+
               const SizedBox(height: 16),
             ],
           ),
@@ -226,6 +230,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ),
     );
   }
+
+  void showInfoDialog(BuildContext context, String title, String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: Text(
+          title,
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'OK',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class CreatePasswordScreen extends StatefulWidget {
@@ -251,7 +281,16 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE8E8E8), // Match background color
+      backgroundColor:
+          const Color.fromARGB(255, 255, 255, 255), // Match background color
+      appBar: AppBar(
+        //Added AppBar for back button
+        backgroundColor:
+            Colors.transparent, // Make AppBar background transparent
+        elevation: 0, // Remove shadow
+        iconTheme:
+            const IconThemeData(color: Colors.black), // Set back button color
+      ),
       body: BlocConsumer<AuthCubit, AuthState>(
         listener: (context, state) async {
           if (state is AuthLoading) {
@@ -375,14 +414,14 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                     }
                   },
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    textStyle: const TextStyle(fontSize: 16),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8.0)),
-                    backgroundColor:
-                        const Color(0xFFE32626), // Match button color
-                    foregroundColor: Colors.white, // Match button text color
-                  ),
+                      minimumSize: const Size(double.infinity, 50),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      textStyle: const TextStyle(fontSize: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(110.0),
+                      ),
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white),
                   child: const Text(
                     "Definir nova senha",
                     style: TextStyle(fontWeight: FontWeight.bold),

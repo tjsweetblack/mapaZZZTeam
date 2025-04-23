@@ -1,3 +1,4 @@
+import 'package:auth_bloc/screens/main_screen.dart';
 import 'package:flutter/material.dart';
 import 'epaludismo_result_screen.dart'; // Assuming epaludismo_result_screen.dart is the file name
 
@@ -28,7 +29,8 @@ class _EPaldudismoScreenState extends State<EPaldudismoScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.of(context).pop();
+            Navigator.pushReplacement(
+                context, MaterialPageRoute(builder: (context) => MapZzzPage()));
           },
         ),
       ),

@@ -1,3 +1,4 @@
+import 'package:auth_bloc/api/firebase_api.dart';
 import 'package:auth_bloc/logic/cubit/auth_cubit.dart';
 import 'package:auth_bloc/routing/routes.dart';
 import 'package:auth_bloc/screens/menu.dart';
@@ -9,30 +10,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart'; // Import geolocator
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart'; // Import webview_flutter
-
-void main() {
-  runApp(
-    BlocProvider(
-      create: (context) => AuthCubit(), // Provide your AuthCubit
-      child: MyApp(),
-    ),
-  );
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'MapZzz App',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      home: MapZzzPage(),
-    );
-  }
-}
 
 class MapZzzPage extends StatefulWidget {
   @override
@@ -42,8 +21,21 @@ class MapZzzPage extends StatefulWidget {
 class _MapZzzPageState extends State<MapZzzPage> {
   final LatLng belasLuanda = LatLng(-8.9036, 13.2489);
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  MapController _mapController =
-      MapController(); // Create a MapController instance
+  MapController _mapController = MapController();
+  String _riskLevelText = 'Estas em zona de sem risco .';
+  final FirebaseApi _firebaseApi = FirebaseApi();
+
+  @override
+  void initState() {
+    super.initState();
+    _firebaseApi.initNotifications(); // Call initNotifications here
+  }
+
+  void _updateRiskLevelText(String newText) {
+    setState(() {
+      _riskLevelText = newText;
+    });
+  }
 
   void _recenterMapToUser() async {
     final Position position = await _getCurrentLocation();
@@ -54,7 +46,6 @@ class _MapZzzPageState extends State<MapZzzPage> {
     bool serviceEnabled;
     LocationPermission permission;
 
-    // Test if location services are enabled.
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       return Future.error('Location services are disabled.');
@@ -79,7 +70,7 @@ class _MapZzzPageState extends State<MapZzzPage> {
   @override
   Widget build(BuildContext context) {
     final authCubit = context.watch<AuthCubit>();
-    final userId = authCubit.currentUser?.uid; // Get the current user's ID
+    final userId = authCubit.currentUser?.uid;
 
     return Scaffold(
       key: _scaffoldKey,
@@ -101,7 +92,7 @@ class _MapZzzPageState extends State<MapZzzPage> {
             Spacer(),
             Row(
               children: [
-                Icon(Icons.location_on, color: Colors.red, size: 18),
+                Icon(Icons.military_tech, color: Colors.red, size: 18),
                 SizedBox(width: 4),
                 Text(
                   'CM',
@@ -146,22 +137,29 @@ class _MapZzzPageState extends State<MapZzzPage> {
       drawer: buildAppDrawer(context),
       body: Stack(
         children: [
-          MapWidget(mapController: _mapController), // Pass the MapController
+          MapWidget(
+            mapController: _mapController,
+            onRiskLevelChanged: _updateRiskLevelText,
+          ),
           Positioned(
             top: 16,
-            left: 16,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'Estas em zona de baixo risco .',
-                style: TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+            left: 32, // Adjust this value for desired margin
+            right: 32, // Adjust this value to be the same as left for centering
+            child: Center(
+              // Wrap the Container with a Center widget
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  _riskLevelText,
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ),
@@ -195,11 +193,24 @@ class _MapZzzPageState extends State<MapZzzPage> {
                 GestureDetector(
                   onTap: () async {
                     final Uri phoneUri = Uri(scheme: 'tel', path: '111');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text(
-                              'Phone call functionality not implemented in this version.')),
-                    );
+                    if (await canLaunchUrl(phoneUri)) {
+                      await launchUrl(phoneUri);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Could not launch phone.')),
+                      );
+                    }
+                    /*Map<String, dynamic> report = {};
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SuccessScreen(
+                          report: report,
+                          message: "hello world",
+                        ),
+                      ),
+                    );*/
                   },
                   child: CircleAvatar(
                       backgroundColor: Colors.white,
@@ -287,7 +298,10 @@ class ReportList extends StatefulWidget {
 
 class _ReportListState extends State<ReportList> {
   List<Map<String, dynamic>> _reports = [];
-  bool _isLoading = true; // To show a loading indicator
+  bool _isLoading =
+      true; // To show a loading indicator, changed to true initially
+  static List<Map<String, dynamic>> _cachedReports =
+      []; // Static cache variable
 
   @override
   void initState() {
@@ -296,9 +310,21 @@ class _ReportListState extends State<ReportList> {
   }
 
   Future<void> _fetchReports() async {
+    if (_cachedReports.isNotEmpty) {
+      // If data is in the cache, use it immediately
+      setState(() {
+        _reports = _cachedReports;
+        _isLoading = false; //set to false here
+      });
+      return; // Exit the function to avoid unnecessary Firestore call
+    }
+
     try {
       FirebaseFirestore.instance
           .collection('reports')
+          .where('status',
+              isEqualTo:
+                  'active') // Filter reports where status is equal to 'active'
           .snapshots()
           .listen((snapshot) {
         List<Map<String, dynamic>> fetchedReports = [];
@@ -307,6 +333,7 @@ class _ReportListState extends State<ReportList> {
         }
         setState(() {
           _reports = fetchedReports;
+          _cachedReports = fetchedReports; // Store fetched reports in cache
           _isLoading = false;
         });
       });
@@ -343,7 +370,8 @@ class _ReportListState extends State<ReportList> {
     }
 
     if (_reports.isEmpty) {
-      return Center(child: Text('No reports found.'));
+      return Center(
+          child: Text('No active reports found.')); //show no active reports
     }
 
     return ListView.builder(
@@ -441,11 +469,16 @@ class _HospitalWebViewScreenState extends State<HospitalWebViewScreen> {
     );
   }
 }
+// Make sure ReportDetailPage is defined or imported elsewhere
+// import 'path/to/report_detail_page.dart'; // Example import
 
 class MapWidget extends StatefulWidget {
   final MapController mapController;
+  final Function(String) onRiskLevelChanged;
 
-  const MapWidget({Key? key, required this.mapController}) : super(key: key);
+  const MapWidget(
+      {Key? key, required this.mapController, required this.onRiskLevelChanged})
+      : super(key: key);
 
   @override
   State<MapWidget> createState() => _MapWidgetState();
@@ -454,6 +487,8 @@ class MapWidget extends StatefulWidget {
 class _MapWidgetState extends State<MapWidget> {
   LatLng? _currentLocation;
   bool _locationFetched = false;
+  bool _initialLoadDone = false;
+  List<CircleMarker> _currentHeatmapCircles = [];
 
   @override
   void initState() {
@@ -465,18 +500,17 @@ class _MapWidgetState extends State<MapWidget> {
     try {
       final Position position = await _getCurrentLocation();
       print(
-          "Fetched Location: Latitude: ${position.latitude}, Longitude: ${position.longitude}"); // Log the fetched location
+          "Fetched Location: Latitude: ${position.latitude}, Longitude: ${position.longitude}");
       setState(() {
         _currentLocation = LatLng(position.latitude, position.longitude);
         _locationFetched = true;
       });
-      widget.mapController.move(_currentLocation!, 15.0); // Initial zoom
+      widget.mapController.move(_currentLocation!, 15.0);
     } catch (e) {
       print("Error getting location: $e");
-      // Handle error appropriately, maybe show a default location
       setState(() {
-        _currentLocation =
-            LatLng(-8.9036, 13.2489); // Default to Belas if location fails
+        _currentLocation = LatLng(-8.913499751058776,
+            13.18721354420165); // Default to Belas if location fails
         _locationFetched = true;
       });
       widget.mapController.move(_currentLocation!, 13.0);
@@ -505,7 +539,8 @@ class _MapWidgetState extends State<MapWidget> {
           'Location permissions are permanently denied, we cannot request permissions.');
     }
 
-    return await Geolocator.getCurrentPosition();
+    return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
   }
 
   final double heatmapRadiusKm = 0.3;
@@ -542,15 +577,74 @@ class _MapWidgetState extends State<MapWidget> {
     );
   }
 
+  Future<void> _saveNewZones(List<CircleMarker> circles) async {
+    if (circles.isEmpty) {
+      return; // No circles to save
+    }
+
+    try {
+      final zonesDocRef = FirebaseFirestore.instance
+          .collection('zones')
+          .doc('87XfsZASiHtEwk1GEdO6');
+      final docSnapshot = await zonesDocRef.get();
+
+      List<Map<String, dynamic>> existingZones = [];
+      if (docSnapshot.exists) {
+        final data = docSnapshot.data();
+        if (data != null && data['zones'] is List) {
+          existingZones = (data['zones'] as List<dynamic>)
+              .whereType<Map<String, dynamic>>()
+              .toList();
+        }
+      }
+
+      List<Map<String, dynamic>> newZonesToAdd = [];
+
+      for (final circle in circles) {
+        final newZoneMap = {
+          'latitude': circle.point.latitude,
+          'longitude': circle.point.longitude,
+        };
+
+        bool exists = existingZones.any((zone) =>
+            zone['latitude'] == newZoneMap['latitude'] &&
+            zone['longitude'] == newZoneMap['longitude']);
+
+        bool alreadyInBatch = newZonesToAdd.any((zone) =>
+            zone['latitude'] == newZoneMap['latitude'] &&
+            zone['longitude'] == newZoneMap['longitude']);
+
+        if (!exists && !alreadyInBatch) {
+          newZonesToAdd.add(newZoneMap);
+          print(
+              'Identified a new zone to save: ${newZoneMap['latitude']}, ${newZoneMap['longitude']}');
+        }
+      }
+
+      if (newZonesToAdd.isNotEmpty) {
+        print('Saving ${newZonesToAdd.length} new zones to Firestore...');
+        await zonesDocRef.update({
+          'zones': FieldValue.arrayUnion(newZonesToAdd),
+        });
+        print('New zones saved successfully.');
+      } else {
+        print('No new zones identified to save.');
+      }
+    } catch (e) {
+      print("Error saving zones to Firestore: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Only build the map if location is fetched
     return _locationFetched && _currentLocation != null
         ? FlutterMap(
             key: UniqueKey(),
             mapController: widget.mapController,
             options: MapOptions(
-              initialCenter: _currentLocation!, // Use the fetched location
-              initialZoom: 15.0, // Increased initial zoom
+              initialCenter: _currentLocation!,
+              initialZoom: 15.0,
               interactionOptions: InteractionOptions(
                 flags: InteractiveFlag.all,
                 cursorKeyboardRotationOptions:
@@ -562,31 +656,33 @@ class _MapWidgetState extends State<MapWidget> {
               TileLayer(
                 urlTemplate:
                     "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                subdomains: ['a', 'b', 'c'],
+                subdomains: const ['a', 'b', 'c'],
                 tileBuilder: _greyScaleTileBuilder,
               ),
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    point:
-                        _currentLocation!, // Use the fetched location for the marker
-                    width: 30,
-                    height: 30,
-                    child: const Icon(
-                      Icons.location_on,
-                      color: Colors.white,
-                      size: 30,
-                    ),
-                  ),
-                ],
-              ),
+
+              // --- Add the User Location Marker Layer Here ---
+
+              // --- End User Location Marker Layer ---
+
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('reports')
+                    .where('status', isEqualTo: 'active')
                     .snapshots(),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return Center(child: CircularProgressIndicator());
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Stack(
+                      children: [
+                        CircleLayer(circles: _currentHeatmapCircles),
+                        MarkerLayer(markers: []),
+                        const Center(child: CircularProgressIndicator()),
+                      ],
+                    );
+                  }
+
+                  if (snapshot.hasError) {
+                    print("Error fetching reports: ${snapshot.error}");
+                    return const Center(child: Text('Error loading reports'));
                   }
 
                   final reports = snapshot.data!.docs
@@ -596,6 +692,7 @@ class _MapWidgetState extends State<MapWidget> {
                   final heatmapCircles = <CircleMarker>[];
                   final processedReports = <Map<String, dynamic>>[];
                   final double heatmapRadiusMeters = heatmapRadiusKm * 1000;
+                  String currentRiskLevelText = 'Estas em zona de sem risco .';
 
                   for (final report in reports) {
                     final latitude = report['latitude'] as double?;
@@ -609,6 +706,7 @@ class _MapWidgetState extends State<MapWidget> {
                           height: 20,
                           child: GestureDetector(
                             onTap: () {
+                              // ReportDetailPage needs to be defined or imported
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -618,7 +716,7 @@ class _MapWidgetState extends State<MapWidget> {
                               );
                             },
                             child: Container(
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: Colors.white,
                               ),
@@ -640,7 +738,9 @@ class _MapWidgetState extends State<MapWidget> {
                   }
 
                   for (final report1 in reports) {
-                    if (processedReports.contains(report1)) {
+                    if (processedReports.any((pReport) =>
+                        pReport['latitude'] == report1['latitude'] &&
+                        pReport['longitude'] == report1['longitude'])) {
                       continue;
                     }
 
@@ -687,12 +787,14 @@ class _MapWidgetState extends State<MapWidget> {
                             count++;
                           }
                         }
-                        final centerLat = count > 0 ? sumLat / count : 0.0;
-                        final centerLon = count > 0 ? sumLon / count : 0.0;
+                        final centerLat = count > 0 ? sumLat / count : lat1;
+                        final centerLon = count > 0 ? sumLon / count : lon1;
+
+                        final clusterCenter = LatLng(centerLat, centerLon);
 
                         heatmapCircles.add(
                           CircleMarker(
-                            point: LatLng(centerLat, centerLon),
+                            point: clusterCenter,
                             radius: heatmapRadiusMeters,
                             useRadiusInMeter: true,
                             color: Colors.red.withOpacity(opacity),
@@ -704,18 +806,71 @@ class _MapWidgetState extends State<MapWidget> {
                     }
                   }
 
+                  _saveNewZones(heatmapCircles);
+
+                  if (!_initialLoadDone && _currentLocation != null) {
+                    for (final circle in heatmapCircles) {
+                      final distanceToCircleCenter = const Distance().distance(
+                        _currentLocation!,
+                        circle.point,
+                      );
+                      if (distanceToCircleCenter <= circle.radius) {
+                        if (circle.color.opacity == 0.3) {
+                          currentRiskLevelText =
+                              'Estas em zona de baixo risco .';
+                          break;
+                        } else if (circle.color.opacity == 0.6) {
+                          currentRiskLevelText =
+                              'Estas em zona de medio risco .';
+                          break;
+                        } else if (circle.color.opacity == 0.9) {
+                          currentRiskLevelText =
+                              'Estas em zona de alto risco .';
+                          break;
+                        }
+                      }
+                    }
+
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      widget.onRiskLevelChanged(currentRiskLevelText);
+                      setState(() {
+                        _initialLoadDone = true;
+                      });
+                    });
+                  }
+
+                  _currentHeatmapCircles = heatmapCircles;
+
                   return Stack(
                     children: [
                       CircleLayer(circles: heatmapCircles),
                       MarkerLayer(markers: reportMarkers),
+                      MarkerLayer(
+                        markers: [
+                          if (_currentLocation !=
+                              null) // Only add the marker if location is available
+                            Marker(
+                              width: 40.0, // Adjust size as needed
+                              height: 40.0, // Adjust size as needed
+                              point:
+                                  _currentLocation!, // The user's current location
+                              child: const Icon(
+                                // Use an icon to represent the user
+                                Icons
+                                    .location_pin, // A common location pin icon
+                                color:
+                                    Colors.blue, // A distinct color like blue
+                                size: 40.0, // Match width/height
+                              ),
+                            ),
+                        ],
+                      ),
                     ],
                   );
                 },
               ),
             ],
           )
-        : Center(
-            child:
-                CircularProgressIndicator()); // Show loading while fetching location
+        : const Center(child: CircularProgressIndicator());
   }
 }

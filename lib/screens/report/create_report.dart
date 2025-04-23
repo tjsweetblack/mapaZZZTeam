@@ -12,6 +12,11 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'report_details.dart';
+import 'package:google_generative_ai/google_generative_ai.dart'; // Import the generative AI package
+
+// Add the API key.  Make sure to replace it with your actual API key.
+const String _apiKey =
+    'AIzaSyBAO_rST4zn3HeQNFHDCXaczAwLMQ0VROg'; //  <--- Replace with your actual API key
 
 class CreateReportCameraScreen extends StatefulWidget {
   @override
@@ -23,6 +28,7 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen> {
   late CameraController _cameraController;
   late Future<void> _initializeCameraControllerFuture;
   List<CameraDescription> _cameras = [];
+  bool _isAnalyzing = false; // Track image analysis state
 
   @override
   void initState() {
@@ -33,17 +39,31 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen> {
   Future<void> _setupCamera() async {
     try {
       _cameras = await availableCameras();
+      if (_cameras.isEmpty) {
+        // Handle the case where no cameras are available.
+        print('No cameras available.');
+        return;
+      }
       _cameraController = CameraController(
         _cameras.first, // Get a specific camera from the list
         ResolutionPreset.high, // Set the resolution
       );
       _initializeCameraControllerFuture = _cameraController.initialize();
+      await _initializeCameraControllerFuture; // Ensure initialization completes.
+
       if (!mounted) {
         return;
       }
       setState(() {});
     } catch (e) {
       print('Error initializing camera: $e');
+      // Show error message to the user
+      if (mounted) {
+        //check mounted
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to initialize camera: $e')),
+        );
+      }
     }
   }
 
@@ -51,6 +71,67 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen> {
   void dispose() {
     _cameraController.dispose();
     super.dispose();
+  }
+
+  Future<bool> _isImageValidForReport(String imagePath) async {
+    try {
+      final generativeModel = GenerativeModel(
+        model: 'gemini-1.5-flash-latest',
+        apiKey: _apiKey,
+      );
+
+      Uint8List imageBytes = await File(imagePath).readAsBytes();
+      final content = [
+        Content.multi([
+          TextPart(
+              "Analyze this image to detect potential mosquito breeding sites. Consider the presence of any of the following: \n"
+              "- Stagnant water (puddles, pools, containers)\n"
+              "- Vegetation capable of holding water (e.g., dense grass, bromeliads)\n"
+              "- Discarded containers (tires, bottles, cans, flowerpots)\n"
+              "- Accumulated trash or debris\n"
+              "- Gutters or drainage systems\n"
+              "- Any other area where water may collect and remain for more than 4 days.\n"
+              "Respond with 'valid' if the image clearly shows one or more of these conditions, and 'invalid' if none are clearly present.  Focus on the presence of standing water and items/areas that can hold water. "),
+          DataPart('image/jpeg', imageBytes),
+        ]),
+      ];
+
+      final response = await generativeModel.generateContent(content);
+      final aiResponse = response.text?.toLowerCase().trim();
+
+      return aiResponse == 'valid';
+    } catch (e) {
+      print("Error analyzing image: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao analisar a imagem.')),
+        );
+      }
+      return false;
+    }
+  }
+
+  void _showInvalidImageDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // User must interact with the dialog
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Foto Inválida'),
+          content: const Text(
+            'A foto não mostra um problema real de risco. Por favor, tire uma foto de um local com água parada, vegetação excessiva ou outros potenciais focos de mosquito.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Dismiss the dialog
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -108,39 +189,73 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen> {
                   alignment: Alignment.bottomCenter,
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 30.0),
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        try {
-                          await _initializeCameraControllerFuture;
-                          final image = await _cameraController.takePicture();
-// Navigate to the next screen (Title and Description)
-// You will need to create this screen next
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CreateReportDetailsScreen(
-                                  imagePath: image.path),
+                    child: _isAnalyzing
+                        ? const CircularProgressIndicator(
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          )
+                        : ElevatedButton(
+                            onPressed: () async {
+                              setState(() {
+                                _isAnalyzing = true;
+                              });
+                              try {
+                                await _initializeCameraControllerFuture;
+                                final image =
+                                    await _cameraController.takePicture();
+                                bool isImageValid =
+                                    await _isImageValidForReport(image.path);
+                                if (isImageValid) {
+                                  if (mounted) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            CreateReportDetailsScreen(
+                                                imagePath: image.path),
+                                      ),
+                                    );
+                                  }
+                                } else {
+                                  if (mounted) {
+                                    _showInvalidImageDialog();
+                                  }
+                                }
+                              } catch (e) {
+                                print('Error taking picture: $e');
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content:
+                                            Text('Error taking picture: $e')),
+                                  );
+                                }
+                              } finally {
+                                if (mounted) {
+                                  setState(() {
+                                    _isAnalyzing = false;
+                                  });
+                                }
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              shape: const CircleBorder(),
+                              padding: const EdgeInsets.all(30),
+                              backgroundColor: Colors.white, // White button
                             ),
-                          );
-                        } catch (e) {
-                          print('Error taking picture: $e');
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        shape: CircleBorder(),
-                        padding: EdgeInsets.all(30),
-                        backgroundColor: Colors.white, // White button
-                      ),
-                      child: Icon(Icons.camera_alt,
-                          size: 40, color: Colors.red), // Red camera icon
-                    ),
+                            child: const Icon(Icons.camera_alt,
+                                size: 40, color: Colors.red), // Red camera icon
+                          ),
                   ),
                 ),
               ],
             );
-          } else {
+          } else if (snapshot.connectionState == ConnectionState.waiting) {
 // Otherwise, display a loading indicator
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
+          } else {
+            return Center(
+                child: Text('Camera Error: ${snapshot.error}')); //show error.
           }
         },
       ),
@@ -165,6 +280,13 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
   bool _isUploading = false;
   String _shippingAddress = ''; // To store the fetched address
   bool _isCreatingReport = false; // To track report creation process
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
 
   Future<String?> _uploadImageToCloudinary(String imagePath) async {
     setState(() {
@@ -228,10 +350,12 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
         } else {
           print(
               "Nominatim API: No address details found in response (inside IF condition)");
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('No address found for selected location.')),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text('No address found for selected location.')),
+            );
+          }
           setState(() {
             _shippingAddress = '';
           });
@@ -241,9 +365,12 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
 // Handle API error (e.g., show an error message)
         print(
             "Nominatim API request failed with status: ${response.statusCode}");
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to get address.')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to get address.')),
+          );
+        }
+
         setState(() {
           _shippingAddress = '';
         });
@@ -252,9 +379,11 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
     } catch (e) {
 // Handle any exceptions (e.g., network issues)
       print("Error fetching address: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to get address.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to get address.')),
+        );
+      }
       setState(() {
         _shippingAddress = '';
       });
@@ -284,6 +413,45 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
     return await Geolocator.getCurrentPosition();
   }
 
+  //this is the function that calls the LLM
+  Future<int> _analyzeRiskLevel(
+      String imageUrl, String title, String description) async {
+    try {
+      final generativeModel = GenerativeModel(
+        model: 'gemini-1.5-flash-latest',
+        apiKey: _apiKey,
+      );
+
+      // Prepare the image data for the AI.
+      Uint8List imageBytes = await File(widget.imagePath).readAsBytes();
+      final content = [
+        Content.multi([
+          TextPart(
+              "Analyze the image and report to assess the risk level of mosquito breeding, taking into account the following title: '$title' and description: '$description'. Rate the risk level on a scale of 1 to 3, where 1 is low risk, 2 is medium risk, and 3 is high risk.  Respond with only a single number (1, 2, or 3) indicating the risk level."),
+          DataPart('image/jpeg', imageBytes),
+        ]),
+      ];
+
+      // Generate content using the AI model.
+      final response = await generativeModel.generateContent(content);
+      final aiResponse = response.text?.trim();
+
+      // Parse the response to an integer
+      int? riskLevel = int.tryParse(aiResponse ?? '');
+      if (riskLevel != null && riskLevel >= 1 && riskLevel <= 3) {
+        return riskLevel;
+      } else {
+        // Handle the error case where the AI doesn't return a valid number
+        print("AI returned invalid risk level: $aiResponse");
+        return 1; // Default to low risk
+      }
+    } catch (e) {
+      // Handle any exceptions (e.g., network issues, AI failure)
+      print("Error analyzing risk level: $e");
+      return 1; // Default to low risk in case of error
+    }
+  }
+
   Future<void> _createReport() async {
     if (_isCreatingReport || _isUploading) {
       return; // Prevent multiple submissions during upload/creation
@@ -292,7 +460,8 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
     String description = _descriptionController.text.trim();
     if (title.isEmpty || description.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Por favor, preencha o título e a descrição.')),
+        const SnackBar(
+            content: Text('Por favor, preencha o título e a descrição.')),
       );
       return;
     }
@@ -307,6 +476,33 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
             position.latitude, position.longitude);
         String? userId = FirebaseAuth.instance.currentUser?.uid;
         if (userId != null) {
+          // Analyze the risk level using AI
+          int riskLevel = await _analyzeRiskLevel(
+              imageUrl, title, description); // Get risk level from AI
+
+          // Initialize the generative AI model
+          final generativeModel = GenerativeModel(
+            model: 'gemini-1.5-flash-latest',
+            apiKey: _apiKey,
+          );
+
+          // Prepare the image data for the AI.
+          Uint8List imageBytes = await File(widget.imagePath).readAsBytes();
+          final content = [
+            Content.multi([
+              TextPart(
+                  "Analyze this report to provide a solution to prevent malaria, respond in portuguese. Title: $title, Description: $description.  Also analyze the image and what to fix in the image to avoid malaria"),
+              // The image is sent as a DataPart.
+              DataPart('image/jpeg', imageBytes),
+            ]),
+          ];
+
+          // Generate content using the AI model.
+          final response = await generativeModel.generateContent(content);
+          final aiSolution = response.text ??
+              "Não foi possível gerar uma solução."; // Provide a default value
+
+          // Create the report and get the DocumentReference
           DocumentReference reportRef =
               await FirebaseFirestore.instance.collection('reports').add({
             'NoConfirmation': 0,
@@ -315,12 +511,19 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
             'latitude': position.latitude,
             'longitude': position.longitude,
             'location': locationName ?? 'Localização desconhecida',
-            'riskLevel': 1,
-            'solutionAi': 'none',
+            'riskLevel':
+                riskLevel, // Store the AI-generated risk level here.  1, 2, or 3
+            'solutionAi': aiSolution, // Store the AI-generated solution here.
             'status': 'active',
             'title': title,
             'userId': userId,
           });
+
+          // Get the ID from the DocumentReference
+          String reportId = reportRef.id;
+
+          // Update the document with the 'id' field
+          await reportRef.update({'id': reportId});
 
 // Update user points
           DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
@@ -348,7 +551,6 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
           if (reportDataWithId != null) {
             reportDataWithId['id'] = newReportSnapshot.id;
           }
-
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -360,31 +562,38 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
           setState(() {
             _isCreatingReport = false;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ao obter o ID do usuário.')),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Erro ao obter o ID do usuário.')),
+            );
+          }
         }
       } else {
         setState(() {
           _isCreatingReport = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao fazer o upload da imagem.')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Erro ao fazer o upload da imagem.')),
+          );
+        }
       }
     } catch (e) {
       setState(() {
         _isCreatingReport = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ocorreu um erro ao criar a reportagem: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ocorreu um erro ao criar a reportagem: $e')),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('MapZzz'),
         backgroundColor: Colors.white,
@@ -404,15 +613,17 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
         ),
       ),
       body: Padding(
+        // Remove the Center Widget
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch, // Change to .stretch
           children: [
-            Text(
-              'detalhe o risco e as potencias\ncausas do risco',
+            const Text(
+              'Detalhe o risco e as potencias\ncausas do risco',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center, //Center the text
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             TextField(
               controller: _titleController,
               decoration: InputDecoration(
@@ -420,14 +631,16 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20.0),
                 ),
+                contentPadding: const EdgeInsets.symmetric(
+                    vertical: 10.0, horizontal: 15.0), //Add padding
               ),
             ),
-            SizedBox(height: 16),
-            Text(
+            const SizedBox(height: 16),
+            const Text(
               'Detalhes',
-              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             TextField(
               controller: _descriptionController,
               maxLines: 5,
@@ -437,9 +650,11 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20.0),
                 ),
+                contentPadding: const EdgeInsets.symmetric(
+                    vertical: 10.0, horizontal: 15.0), //Add padding
               ),
             ),
-            Spacer(), // Push the button to the bottom
+            const SizedBox(height: 20), //Add space before the button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -448,17 +663,18 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                  textStyle: TextStyle(fontSize: 18),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                  textStyle: const TextStyle(fontSize: 18),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25.0),
                   ),
                 ),
                 child: (_isCreatingReport || _isUploading)
-                    ? CircularProgressIndicator(
+                    ? const CircularProgressIndicator(
                         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       )
-                    : Text('Completar'),
+                    : const Text('Completar'),
               ),
             ),
           ],
@@ -476,24 +692,29 @@ class CreateReportSuccessScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('MapZzz'),
+        title: const Text('MapZzz'),
         backgroundColor: Colors.white,
-        iconTheme: IconThemeData(color: Colors.black),
+        iconTheme: const IconThemeData(color: Colors.black),
         titleTextStyle:
-            TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+            const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
       ),
-      body: Center(
+      body: Padding(
+        //changed to padding
+        padding: EdgeInsets.only(top: 50),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          //changed to column
+          //mainAxisAlignment: MainAxisAlignment.center, // Removed mainAxisAlignment
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(
+            const Icon(
               Icons.check_circle_outline,
               color: Colors.red,
               size: 120,
             ),
-            SizedBox(height: 20),
-            Text(
+            const SizedBox(height: 20),
+            const Text(
               'Concluido .',
               style: TextStyle(
                 fontSize: 24,
@@ -501,16 +722,18 @@ class CreateReportSuccessScreen extends StatelessWidget {
                 color: Colors.red,
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
-              'Reportagem criada com sucesso .',
+              "Reportagem criada com sucesso .",
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16),
+              style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold), // Made message bold
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+              children: const [
                 Text(
                   'Ganhaste',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -524,9 +747,10 @@ class CreateReportSuccessScreen extends StatelessWidget {
                 ),
               ],
             ),
-            SizedBox(height: 40),
+            const SizedBox(height: 40),
             SizedBox(
-              width: 200,
+              width: 300, // Increased width of the button.
+              height: 50, // increased height
               child: ElevatedButton(
                 onPressed: () {
                   if (report != null && report!.containsKey('id')) {
@@ -538,7 +762,7 @@ class CreateReportSuccessScreen extends StatelessWidget {
                     );
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
+                      const SnackBar(
                           content:
                               Text('Erro ao carregar detalhes da reportagem.')),
                     );
@@ -547,33 +771,43 @@ class CreateReportSuccessScreen extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(horizontal: 30, vertical: 14),
-                  textStyle: TextStyle(fontSize: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
+                  textStyle:
+                      const TextStyle(fontSize: 18), // Increased font size
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25.0),
                   ),
                 ),
-                child: Text('Ver reportagem'),
+                child: const Text('Ver reportagem'),
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             SizedBox(
-              width: 200,
+              width: 300, // Increased width of the button.
+              height: 50, // increased height
               child: ElevatedButton(
                 onPressed: () {
 // Navigate back to the main map screen
-                  Navigator.popUntil(context, (route) => route.isFirst);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MapZzzPage(),
+                    ),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.grey[700],
                   foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(horizontal: 30, vertical: 14),
-                  textStyle: TextStyle(fontSize: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
+                  textStyle:
+                      const TextStyle(fontSize: 18), // Increased font size
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25.0),
                   ),
                 ),
-                child: Text('voltar ao inicio'),
+                child: const Text('voltar ao inicio'),
               ),
             ),
           ],

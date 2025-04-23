@@ -1,17 +1,5 @@
 import 'package:flutter/material.dart';
-
-void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: RewardsPage(),
-    );
-  }
-}
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RewardsPage extends StatelessWidget {
   @override
@@ -20,47 +8,49 @@ class RewardsPage extends StatelessWidget {
       backgroundColor: Colors.white,
       appBar: AppBar(
         leading: IconButton(
-          icon: Icon(Icons.chevron_left),
+          icon: const Icon(Icons.chevron_left),
           onPressed: () {
-            // Handle back button press
+            Navigator.pop(context);
           },
         ),
-        title: Text('Premios'),
+        title: const Text('Premios'),
         centerTitle: true,
       ),
-      body: ListView(
-        children: <Widget>[
-          _buildRewardItem(
-            image:
-                'https://www.shopsemlim.com/wp-content/uploads/2020/11/Dragao.jpg',
-            title: 'Caixa de dragao.',
-            points: 10,
-            buttonText: 'Reivindicado',
-            buttonColor: Colors.grey,
-            strokeColor:
-                const Color.fromARGB(255, 43, 43, 43), // Added strokeColor
-          ),
-          _buildRewardItem(
-            image:
-                'https://www.shopsemlim.com/wp-content/uploads/2020/11/Dragao.jpg',
-            title: 'Caixa de xelto.',
-            points: 40,
-            buttonText: 'Reivindicar',
-            buttonColor: Colors.red,
-            strokeColor:
-                const Color.fromARGB(255, 43, 43, 43), // Added strokeColor
-          ),
-          _buildRewardItem(
-            image:
-                'https://www.shopsemlim.com/wp-content/uploads/2020/11/Dragao.jpg',
-            title: 'Repelente Thermacell.',
-            points: 60,
-            buttonText: 'Reivindicar',
-            buttonColor: Colors.red,
-            strokeColor:
-                const Color.fromARGB(255, 43, 43, 43), // Added strokeColor
-          ),
-        ],
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('reward').snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.data == null || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('No rewards found.'));
+          }
+
+          return ListView(
+            children: snapshot.data!.docs.map((DocumentSnapshot document) {
+              Map<String, dynamic> data =
+                  document.data() as Map<String, dynamic>;
+              return _buildRewardItem(
+                image: data['imageUrl'] ??
+                    '', // Provide a default value if imageUrl is null
+                title: data['title'] ??
+                    '', // Provide a default value if title is null
+                points: data['points'] ??
+                    0, // Provide a default value if points is null
+                buttonText:
+                    'Reivindicar', // This should be handled based on user's claimed rewards
+                buttonColor: Colors
+                    .red, //  This should change based on whether the user can claim it
+                strokeColor: const Color.fromARGB(255, 43, 43, 43),
+              );
+            }).toList(),
+          );
+        },
       ),
     );
   }
@@ -71,20 +61,16 @@ class RewardsPage extends StatelessWidget {
     required int points,
     required String buttonText,
     required Color buttonColor,
-    Color? strokeColor, // Added strokeColor parameter
+    Color? strokeColor,
   }) {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10.0),
         border: Border.all(
-          color: strokeColor ??
-              Colors.grey
-                  .shade300, // Use strokeColor if provided, otherwise default to grey
-          width: strokeColor != null
-              ? 2.0
-              : 1.0, // Set stroke width if strokeColor is provided
+          color: strokeColor ?? Colors.grey.shade300,
+          width: strokeColor != null ? 2.0 : 1.0,
         ),
       ),
       child: Padding(
@@ -95,28 +81,30 @@ class RewardsPage extends StatelessWidget {
             Center(
               child: Container(
                 height: 80.0,
-                child: Image.network(image),
+                child: image.isNotEmpty
+                    ? Image.network(image)
+                    : const Placeholder(), // Show placeholder if image URL is empty
               ),
             ),
-            SizedBox(height: 16.0),
-            Text(
+            const SizedBox(height: 16.0),
+            const Text(
               'Nome:',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             Text(title),
-            SizedBox(height: 8.0),
+            const SizedBox(height: 8.0),
             Row(
               children: <Widget>[
-                Icon(
+                const Icon(
                   Icons.star,
                   color: Colors.red,
                   size: 20.0,
                 ),
-                SizedBox(width: 4.0),
+                const SizedBox(width: 4.0),
                 Text('pontos necessario: $points pontos'),
               ],
             ),
-            SizedBox(height: 16.0),
+            const SizedBox(height: 16.0),
             Align(
               alignment: Alignment.bottomLeft,
               child: ElevatedButton(
@@ -125,7 +113,7 @@ class RewardsPage extends StatelessWidget {
                 },
                 child: Text(
                   buttonText,
-                  style: TextStyle(color: Colors.white),
+                  style: const TextStyle(color: Colors.white),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: buttonColor,

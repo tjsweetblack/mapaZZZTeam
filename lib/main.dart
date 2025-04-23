@@ -1,21 +1,38 @@
-// main.dart
+import 'dart:async';
+import 'dart:convert';
+import 'package:auth_bloc/api/firebase_api.dart';
 import 'package:auth_bloc/firebase_options.dart';
 import 'package:auth_bloc/logic/cubit/auth_cubit.dart';
 import 'package:auth_bloc/screens/splash_screen/splash.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Import cloud_firestore
+import 'package:device_preview/device_preview.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:device_preview/device_preview.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Import shared_preferences
+import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'routing/app_router.dart';
 import 'routing/routes.dart';
 import 'theming/colors.dart';
-import 'package:provider/provider.dart';
 
 late String initialRoute;
+
+// Initialize FlutterLocalNotificationsPlugin
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  print('Handling a background message ${message.messageId}');
+  print('Message data: ${message.data}');
+  // You can perform background tasks here.
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,13 +43,13 @@ Future<void> main() async {
     ),
   ]);
 
-  // Check if onboarding is completed
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
   final prefs = await SharedPreferences.getInstance();
   bool onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
 
   if (!onboardingCompleted) {
-    initialRoute =
-        Routes.onboardingScreen; // Route to onboarding if not completed
+    initialRoute = Routes.onboardingScreen;
   } else {
     FirebaseAuth.instance.authStateChanges().listen(
       (user) {
@@ -47,7 +64,7 @@ Future<void> main() async {
 
   runApp(
     DevicePreview(
-      enabled: true, // kDebugMode, // Enable only in debug mode if desired
+      enabled: false, // kDebugMode,
       builder: (context) => MyApp(router: AppRouter()),
     ),
   );
@@ -63,22 +80,224 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   bool _isLoading = true;
+  List<Map<String, dynamic>> _riskZones = [];
+  Timer? _locationCheckTimer;
+  final int _checkIntervalSeconds = 5; // Adjust as needed
+
+  Future<List<Map<String, dynamic>>> _fetchRiskZones() async {
+    try {
+      DocumentSnapshot<Map<String, dynamic>> documentSnapshot =
+          await FirebaseFirestore.instance
+              .collection('zones')
+              .doc('87XfsZASiHtEwk1GEdO6')
+              .get();
+
+      if (documentSnapshot.exists) {
+        final data = documentSnapshot.data();
+        if (data != null &&
+            data.containsKey('zones') &&
+            data['zones'] is List) {
+          final zones = data['zones'] as List;
+          print('all the zone are belows:');
+          print(zones);
+          return (data['zones'] as List).cast<Map<String, dynamic>>();
+        } else {
+          print(
+              "Error: 'zones' field not found or is not a list in the document.");
+          return [];
+        }
+      } else {
+        print(
+            "Error: Document '87XfsZASiHtEwk1GEdO6' does not exist in the 'zones' collection.");
+        return [];
+      }
+    } catch (e) {
+      print("Error fetching risk zones: $e");
+      return [];
+    }
+  }
+
+  Future<Position> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('Location services are disabled.');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Location permissions are denied');
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error(
+          'Location permissions are permanently denied, we cannot request permissions.');
+    }
+
+    return await Geolocator.getCurrentPosition();
+  }
+
+  double _calculateDistance(
+      double lat1, double lon1, double lat2, double lon2) {
+    return Geolocator.distanceBetween(lat1, lon1, lat2, lon2);
+  }
+
+  Future<void> _checkProximityAndNotify() async {
+    print("initiated proximity function");
+    try {
+      Position position = await _getCurrentLocation();
+      bool isInRiskZone = false;
+
+      for (var zone in _riskZones) {
+        if (zone.containsKey('latitude') && zone.containsKey('longitude')) {
+          double distance = _calculateDistance(
+            position.latitude,
+            position.longitude,
+            zone['latitude'] as double,
+            zone['longitude'] as double,
+          );
+
+          if (distance <= 300) {
+            print("estas em umazona de risco");
+            isInRiskZone = true;
+            break;
+          }
+        } else {
+          print("Warning: Invalid zone data - missing latitude or longitude.");
+        }
+      }
+      _showProximityNotification(isInRiskZone);
+    } catch (e) {
+      print("Error checking proximity: $e");
+      // Handle location errors gracefully
+    }
+  }
+
+  Future<void> _showProximityNotification(bool isInRiskZone) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'proximity_channel', // Unique channel ID
+      'Proximity Alerts', // Channel name
+      channelDescription: 'Notifications for proximity to risk zones',
+      importance: Importance.high,
+      priority: Priority.high,
+      showWhen: false,
+    );
+    const NotificationDetails platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+    await flutterLocalNotificationsPlugin.show(
+      0, // Notification ID
+      'Risco',
+      isInRiskZone
+          ? 'Estás em uma área de risco'
+          : 'Estás em uma área sem risco',
+      platformChannelSpecifics,
+      payload: 'proximity_notification',
+    );
+  }
+
+  Future<void> setupPushNotifications() async {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    NotificationSettings settings = await messaging.requestPermission(
+      alert: true,
+      announcement: false,
+      badge: true,
+      carPlay: false,
+      criticalAlert: false,
+      provisional: false,
+      sound: true,
+    );
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      print('User granted permission');
+    } else if (settings.authorizationStatus ==
+        AuthorizationStatus.provisional) {
+      print('User granted provisional permission');
+    } else {
+      print('User declined or has not accepted permission');
+    }
+
+    FirebaseMessaging.instance.getToken().then((token) {
+      print("FCM Token: $token");
+      // Save this token to your server if needed
+    });
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('Got a message whilst in the foreground!');
+      print('Message data: ${message.data}');
+      if (message.notification != null) {
+        print('Message also contained a notification: ${message.notification}');
+        FirebaseApi().showLocalNotification(message);
+      } else {
+        print('Received a data-only message in foreground.');
+        FirebaseApi().showLocalNotification(message);
+      }
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      print('Message clicked!');
+      print('Message data: ${message.data}');
+      // Handle navigation
+    });
+
+    FirebaseMessaging.instance.getInitialMessage().then((message) {
+      if (message != null) {
+        print(
+            'App launched from terminated state by notification: ${message.data}');
+        // Handle navigation
+      }
+    });
+  }
+
+  Future<void> _initLocalNotifications() async {
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('app_icon'); // Replace 'app_icon'
+    const DarwinInitializationSettings initializationSettingsIOS =
+        DarwinInitializationSettings();
+    const InitializationSettings initializationSettings =
+        InitializationSettings(
+            android: initializationSettingsAndroid,
+            iOS: initializationSettingsIOS);
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  }
 
   @override
   void initState() {
     super.initState();
     _initializeApp();
+    _initLocalNotifications();
+    setupPushNotifications();
+    _startLocationMonitoring();
   }
 
   Future<void> _initializeApp() async {
-    await Future.delayed(
-        const Duration(seconds: 3)); // Reduced delay for faster testing
+    _riskZones = await _fetchRiskZones();
+    await Future.delayed(const Duration(seconds: 3));
 
     if (mounted) {
       setState(() {
         _isLoading = false;
       });
     }
+  }
+
+  void _startLocationMonitoring() {
+    _locationCheckTimer =
+        Timer.periodic(Duration(seconds: _checkIntervalSeconds), (timer) {
+      _checkProximityAndNotify();
+    });
+  }
+
+  @override
+  void dispose() {
+    _locationCheckTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -120,7 +339,6 @@ class _MyAppState extends State<MyApp> {
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty<AppRouter>(
-        'router', widget.router)); // Use widget.router
+    properties.add(DiagnosticsProperty<AppRouter>('router', widget.router));
   }
 }

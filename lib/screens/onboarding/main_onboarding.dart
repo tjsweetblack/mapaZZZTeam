@@ -95,18 +95,14 @@ class _mainOnboardingState extends State<mainOnboarding> {
                     child: ElevatedButton(
                       onPressed: _nextPage,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 40.0,
-                            vertical:
-                                16.0), // Increased horizontal and vertical padding
-                        minimumSize: const Size(double.infinity,
-                            48.0), // Make button wider and set a minimum height
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                      ),
+                          minimumSize: const Size(double.infinity, 50),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          textStyle: const TextStyle(fontSize: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(110.0),
+                          ),
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white),
                       child: const Text("next",
                           style: TextStyle(
                               color: Color.fromARGB(255, 255, 255, 255))),
@@ -119,18 +115,14 @@ class _mainOnboardingState extends State<mainOnboarding> {
                     child: ElevatedButton(
                       onPressed: _navigateToMainApp,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 40.0,
-                            vertical:
-                                16.0), // Increased horizontal and vertical padding
-                        minimumSize: const Size(double.infinity,
-                            48.0), // Make button wider and set a minimum height
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                      ),
+                          minimumSize: const Size(double.infinity, 50),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          textStyle: const TextStyle(fontSize: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(110.0),
+                          ),
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white),
                       child: const Text("Começar Agora",
                           style: TextStyle(color: Colors.white)),
                     ),
@@ -148,12 +140,12 @@ class _mainOnboardingState extends State<mainOnboarding> {
       duration: const Duration(milliseconds: 150),
       margin: const EdgeInsets.symmetric(horizontal: 8.0),
       height: 8.0,
-      width: isActive ? 24.0 : 16.0,
+      width: 8.0, // Make width the same as height for a circle
       decoration: BoxDecoration(
         color: isActive
             ? Colors.red
             : Colors.grey[700], // Slightly darker grey for inactive
-        borderRadius: BorderRadius.circular(12),
+        shape: BoxShape.circle, // Use the circle shape
       ),
     );
   }

@@ -5,8 +5,9 @@ class Routes {
   static const String createPassword = "/createPassword";
   static const String profileScreen = '/profile';
   static const String mainScreen = 'mainScreen';
-  static const String orderDetails = 'orderDetails';
+  static const String PhoneAuthScreen = 'PhoneAuthScreen';
   static const String productDetails = 'productDetails';
   static const String myCustomBurgersScreen = 'myCustomBurgersScreen';
   static const String onboardingScreen = 'onboardingScreen';
+  static const String splashScreen = 'splashScreen';
 }

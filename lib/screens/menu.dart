@@ -80,7 +80,7 @@ Widget buildAppDrawer(BuildContext context) {
                 color: Colors.red), // Using a help icon for EPaludismo
             title: Text('EPaludismo ?', style: TextStyle(color: Colors.red)),
             onTap: () {
-              Navigator.push(
+              Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
                       builder: (context) =>

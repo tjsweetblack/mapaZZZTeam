@@ -121,7 +121,7 @@ class _MalariaResultScreenState extends State<MalariaResultScreen> {
       appBar: AppBar(
         title:
             const Text('EPaludismo ?', style: TextStyle(color: Colors.black)),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
         iconTheme: const IconThemeData(color: Colors.black),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -147,7 +147,7 @@ class _MalariaResultScreenState extends State<MalariaResultScreen> {
                       child: CircularProgressIndicator(
                         valueColor:
                             const AlwaysStoppedAnimation<Color>(Colors.red),
-                        backgroundColor: Colors.grey[300],
+                        backgroundColor: Colors.grey,
                         strokeWidth: 10,
                         value: isLoading
                             ? null

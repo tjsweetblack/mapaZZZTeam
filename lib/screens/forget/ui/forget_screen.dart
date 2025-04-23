@@ -2,10 +2,9 @@ import 'package:auth_bloc/helpers/extensions.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
-import '../../../logic/cubit/auth_cubit.dart';
-import '../../../theming/styles.dart';
+import '/../../logic/cubit/auth_cubit.dart';
+import '/../../theming/styles.dart';
 
 class ForgetScreen extends StatefulWidget {
   const ForgetScreen({super.key});
@@ -17,38 +16,48 @@ class ForgetScreen extends StatefulWidget {
 class _ForgetScreenState extends State<ForgetScreen> {
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final horizontalPadding = screenWidth * 0.08; // Approximate 30.w
+    final bottomPadding = screenHeight * 0.02; // Approximate 15.h
+    final topPadding = screenHeight * 0.006; // Approximate 5.h
+    final imageheight = screenHeight * 0.18; // Approximate 150.h
+    final gap30 = screenHeight * 0.036; // Approximate 30.h
+    final gap40 = screenHeight * 0.048; // Approximate 40.h
+    final gap20 = screenHeight * 0.024; // Approximate 20.h
+
     return Scaffold(
-      backgroundColor: Colors.black, // Set background color to black
+      backgroundColor: Colors.white, // Set background color to white
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
       body: SafeArea(
         child: Padding(
-          padding:
-              EdgeInsets.only(left: 30.w, right: 30.w, bottom: 15.h, top: 5.h),
+          padding: EdgeInsets.only(
+              left: horizontalPadding,
+              right: horizontalPadding,
+              bottom: bottomPadding,
+              top: topPadding),
           child: Column(
             children: [
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Reset',
-                              style: TextStyles.font24Blue700Weight.copyWith(
-                                  color: Colors.white), // White Reset text
-                            ),
-                            Gap(10.h),
-                            Text(
-                              "Enter email to reset password",
-                              style: TextStyles.font14Grey400Weight.copyWith(
-                                  color: Colors.white70), // Lighter white text
-                            ),
-                          ],
-                        ),
+                      Gap(gap30),
+                      Image.asset(
+                        'assets/images/forget.png',
+                        height: imageheight,
+                        fit: BoxFit.contain,
                       ),
-                      Gap(20.h),
+                      Gap(gap40),
                       BlocConsumer<AuthCubit, AuthState>(
                         listenWhen: (previous, current) => previous != current,
                         listener: (context, state) async {
@@ -80,15 +89,11 @@ class _ForgetScreenState extends State<ForgetScreen> {
                   ),
                 ),
               ),
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min, // Ensure minimum height
-                  children: [
-                    const TermsAndConditionsTextThemed(), // Use themed Terms and Conditions text
-                    Gap(24.h),
-                    const AlreadyHaveAccountTextThemed(), // Use themed Already have account text
-                  ],
+              Padding(
+                padding: EdgeInsets.only(bottom: gap20), // Approximate 20.h
+                child: const Text(
+                  "Need Help | FAQ | Terms Of use",
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
                 ),
               ),
             ],
@@ -104,8 +109,8 @@ class _ForgetScreenState extends State<ForgetScreen> {
       barrierDismissible: false,
       builder: (context) => const Center(
         child: CircularProgressIndicator(
-          color: Colors.white,
-        ), // White loading indicator
+          color: Colors.red, // Red loading indicator
+        ),
       ),
     );
   }
@@ -117,13 +122,14 @@ class _ForgetScreenState extends State<ForgetScreen> {
       animType: AnimType.rightSlide,
       title: 'Error',
       desc: message,
-      titleTextStyle: const TextStyle(color: Colors.white), // White title text
+      titleTextStyle: const TextStyle(color: Colors.black), // Black title text
       descTextStyle:
-          const TextStyle(color: Colors.white), // White description text
+          const TextStyle(color: Colors.black), // Black description text
       headerAnimationLoop: false,
-      dialogBackgroundColor: Colors.grey[900], // Dark dialog background
+      dialogBackgroundColor: Colors.grey[200], // Light grey dialog background
       buttonsTextStyle:
-          const TextStyle(color: Colors.white), // White button text
+          const TextStyle(color: Colors.black), // Black button text
+      btnOkColor: Colors.red,
     ).show();
   }
 
@@ -134,13 +140,13 @@ class _ForgetScreenState extends State<ForgetScreen> {
       animType: AnimType.rightSlide,
       title: title,
       desc: message,
-      titleTextStyle: const TextStyle(color: Colors.white), // White title text
+      titleTextStyle: const TextStyle(color: Colors.black), // Black title text
       descTextStyle:
-          const TextStyle(color: Colors.white), // White description text
+          const TextStyle(color: Colors.black), // Black description text
       headerAnimationLoop: false,
-      dialogBackgroundColor: Colors.grey[900], // Dark dialog background
+      dialogBackgroundColor: Colors.grey[200], // Light grey dialog background
       buttonsTextStyle:
-          const TextStyle(color: Colors.white), // White button text
+          const TextStyle(color: Colors.black), // Black button text
       btnOkText: 'OK', // Set button text to "OK"
       btnOkOnPress: () {
         // Action when OK is pressed
@@ -166,116 +172,92 @@ class PasswordResetThemed extends StatefulWidget {
 
 class _PasswordResetThemedState extends State<PasswordResetThemed> {
   final TextEditingController emailController = TextEditingController();
+  final _formKey = GlobalKey<FormState>(); // Add a form key for validation
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        TextField(
-          controller: emailController,
-          style: const TextStyle(color: Colors.white), // Input text color white
-          decoration: InputDecoration(
-            labelText: "Email",
-            labelStyle: const TextStyle(
-                color: Colors.white70), // Label text color white
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.0),
-              borderSide:
-                  const BorderSide(color: Colors.white54), // White border
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.0),
-              borderSide:
-                  const BorderSide(color: Colors.white), // White focused border
-            ),
-          ),
-        ),
-        Gap(24.h),
-        ElevatedButton(
-          onPressed: () {
-            context.read<AuthCubit>().resetPassword(emailController.text);
-          },
-          style: ElevatedButton.styleFrom(
-            minimumSize: const Size(double.infinity, 50),
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            textStyle: const TextStyle(fontSize: 16),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(110.0)),
-            backgroundColor: Colors.white, // White button
-            foregroundColor: Colors.black, // Black button text
-          ),
-          child: const Text(
-            "Reset Password",
-            style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold), // Black button text
-          ),
-        ),
-      ],
-    );
-  }
-}
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final gap30 = screenHeight * 0.036; // Approximate 30.h
+    final buttonHeight = screenHeight * 0.06; // Approximate 50
+    final borderRadius = screenWidth * 0.02; // Approximate 8.0
+    final fontSize16 = screenWidth * 0.04; // Approximate 16
 
-class TermsAndConditionsTextThemed extends StatelessWidget {
-  const TermsAndConditionsTextThemed({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: RichText(
-        textAlign: TextAlign.center,
-        text: TextSpan(
-          style: TextStyles.font13Grey400Weight.copyWith(
-            height: 1.5,
-            fontSize: 13.sp,
-            color: Colors.white70, // White terms and conditions text
+    return Form(
+      key: _formKey, // Assign the form key to the Form widget
+      child: Column(
+        children: [
+          TextFormField(
+            controller: emailController,
+            keyboardType: TextInputType.emailAddress,
+            style:
+                const TextStyle(color: Colors.black), // Input text color black
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.email_outlined,
+                  color: Colors.grey), // Email icon
+              hintText: "Insira o endereço de e-mail", // Placeholder text
+              hintStyle: const TextStyle(color: Colors.grey),
+              labelText: null, // Remove label text
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(borderRadius),
+                borderSide: const BorderSide(color: Colors.grey), // Grey border
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(borderRadius),
+                borderSide: const BorderSide(
+                    color: Colors.black), // Black focused border
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(borderRadius),
+                borderSide:
+                    const BorderSide(color: Colors.red), // Red error border
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(borderRadius),
+                borderSide: const BorderSide(
+                    color: Colors.redAccent), // Red accent focused error border
+              ),
+              fillColor: Colors.grey[100],
+              filled: true,
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Por favor, insira seu e-mail'; // Please enter your email
+              }
+              if (!value.contains('@')) {
+                return 'Por favor, insira um e-mail válido'; // Please enter a valid email
+              }
+              return null;
+            },
           ),
-          children: const [
-            TextSpan(text: 'By continue, you agree to our\n'),
-            TextSpan(
-              text: 'Terms of Service',
-              style: TextStyle(fontWeight: FontWeight.bold),
+          Gap(gap30),
+          SizedBox(
+            width: double.infinity,
+            height: buttonHeight,
+            child: ElevatedButton(
+              onPressed: () {
+                if (_formKey.currentState!.validate()) {
+                  context.read<AuthCubit>().resetPassword(emailController.text);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                textStyle: TextStyle(fontSize: fontSize16),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(borderRadius)),
+                backgroundColor: Colors.red, // Red button
+                foregroundColor: Colors.white, // White button text
+              ),
+              child: const Text(
+                "Enviar código de verificação",
+                style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold), // White button text
+              ),
             ),
-            TextSpan(text: ' and '),
-            TextSpan(
-              text: 'Privacy Policy',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
-}
-
-class AlreadyHaveAccountTextThemed extends StatelessWidget {
-  const AlreadyHaveAccountTextThemed({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text(
-          "Don't have an account?",
-          style: TextStyle(
-              color: Colors.white70), // White "Don't have an account?" text
-        ),
-        GestureDetector(
-          onTap: () {
-            context.pop();
-          },
-          child: Text(
-            "Sign In",
-            style: TextStyles.font14Blue400Weight.copyWith(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.white, // White "Sign In" text
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

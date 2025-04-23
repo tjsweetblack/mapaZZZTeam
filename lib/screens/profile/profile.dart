@@ -120,6 +120,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _usernameController.text = userData['username'] ?? '';
           _emailController.text = userData['email'] ?? '';
           _phoneController.text = userData['phoneNumber'] ?? '';
+          final points = userData['points'] as int? ?? 0;
+          final progress = points / 2000;
 
           return SingleChildScrollView(
             child: Padding(
@@ -153,21 +155,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Center(
-                    child: Text(
-                      'Caçador de Mosquitos', // Replace with actual user role if available
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
+                  Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.military_tech,
+                            color: Colors.black, size: 18),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Caçador de Mosquitos', // Replace with actual user role if available
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16, // Slightly smaller font size
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 8),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 40.0),
                     child: LinearProgressIndicator(
-                      value: 0.7, // Example progress value
+                      value: progress.clamp(
+                          0.0, 1.0), // Progress value based on points
                       backgroundColor: Colors.grey[300],
                       valueColor:
                           const AlwaysStoppedAnimation<Color>(Colors.red),
@@ -175,13 +186,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Center(
+                  Center(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.star_border, color: Colors.black, size: 16),
-                        SizedBox(width: 4),
-                        Text('+30 pontos',
+                        const Icon(Icons.star_border,
+                            color: Colors.black, size: 16),
+                        const SizedBox(width: 4),
+                        Text('+${points} pontos', // Display actual points
                             style:
                                 TextStyle(color: Colors.black, fontSize: 14)),
                       ],
