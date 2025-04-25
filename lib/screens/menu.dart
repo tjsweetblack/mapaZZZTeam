@@ -89,6 +89,19 @@ Widget buildAppDrawer(BuildContext context) {
             },
           ),
           ListTile(
+            leading: Icon(Icons.info_outline,
+                color: Colors.red), // Using a help icon for EPaludismo
+            title: Text('sobre', style: TextStyle(color: Colors.red)),
+            onTap: () {
+              Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          const EPaldudismoScreen())); // Close the drawer
+              // Handle EPaludismo action
+            },
+          ),
+          ListTile(
             leading: Icon(Icons.logout,
                 color: Colors.red), // Match the icon from the image
             title: Text('Logout', style: TextStyle(color: Colors.red)),

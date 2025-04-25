@@ -31,7 +31,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   print('Handling a background message ${message.messageId}');
   print('Message data: ${message.data}');
-  // You can perform background tasks here.
+// You can perform background tasks here.
 }
 
 Future<void> main() async {
@@ -151,34 +151,50 @@ class _MyAppState extends State<MyApp> {
     print("initiated proximity function");
     try {
       Position position = await _getCurrentLocation();
-      bool isInRiskZone = false;
+      int highestRiskLevel = 0; // Initialize risk level to 0 (no risk)
 
       for (var zone in _riskZones) {
-        if (zone.containsKey('latitude') && zone.containsKey('longitude')) {
-          double distance = _calculateDistance(
-            position.latitude,
-            position.longitude,
-            zone['latitude'] as double,
-            zone['longitude'] as double,
-          );
+        if (zone.containsKey('latitude') &&
+            zone.containsKey('longitude') &&
+            zone.containsKey('riskLevel')) {
+          final double? zoneLat = zone['latitude'] as double?;
+          final double? zoneLon = zone['longitude'] as double?;
+          final int? zoneRiskLevel = zone['riskLevel'] as int?;
 
-          if (distance <= 300) {
-            print("estas em umazona de risco");
-            isInRiskZone = true;
-            break;
+          if (zoneLat != null && zoneLon != null && zoneRiskLevel != null) {
+            double distance = _calculateDistance(
+              position.latitude,
+              position.longitude,
+              zoneLat,
+              zoneLon,
+            );
+
+// Check if the user is within 300 meters of this zone
+            if (distance <= 300) {
+              print(
+                  "User is within 300m of a zone with risk level: $zoneRiskLevel");
+// Update highestRiskLevel if the current zone's level is higher
+              if (zoneRiskLevel > highestRiskLevel) {
+                highestRiskLevel = zoneRiskLevel;
+              }
+            }
+          } else {
+            print(
+                "Warning: Invalid zone data - missing latitude, longitude, or riskLevel.");
           }
         } else {
-          print("Warning: Invalid zone data - missing latitude or longitude.");
+          print(
+              "Warning: Zone data missing expected keys (latitude, longitude, riskLevel).");
         }
       }
-      _showProximityNotification(isInRiskZone);
+      _showProximityNotification(highestRiskLevel);
     } catch (e) {
       print("Error checking proximity: $e");
-      // Handle location errors gracefully
+// Handle location errors gracefully
     }
   }
 
-  Future<void> _showProximityNotification(bool isInRiskZone) async {
+  Future<void> _showProximityNotification(int riskLevel) async {
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
       'proximity_channel', // Unique channel ID
@@ -190,12 +206,27 @@ class _MyAppState extends State<MyApp> {
     );
     const NotificationDetails platformChannelSpecifics =
         NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    String notificationMessage;
+    switch (riskLevel) {
+      case 1:
+        notificationMessage = 'Estás em uma zona de baixo risco.';
+        break;
+      case 2:
+        notificationMessage = 'Estás em uma zona de médio risco.';
+        break;
+      case 3:
+        notificationMessage = 'Estás em uma zona de alto risco.';
+        break;
+      default: // riskLevel is 0 or any other unexpected value
+        notificationMessage = 'Estás em uma área sem risco.';
+        break;
+    }
+
     await flutterLocalNotificationsPlugin.show(
       0, // Notification ID
-      'Risco',
-      isInRiskZone
-          ? 'Estás em uma área de risco'
-          : 'Estás em uma área sem risco',
+      'Risco', // Notification Title
+      notificationMessage, // Notification Body (the specific risk message)
       platformChannelSpecifics,
       payload: 'proximity_notification',
     );
@@ -225,7 +256,7 @@ class _MyAppState extends State<MyApp> {
 
     FirebaseMessaging.instance.getToken().then((token) {
       print("FCM Token: $token");
-      // Save this token to your server if needed
+// Save this token to your server if needed
     });
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -243,14 +274,14 @@ class _MyAppState extends State<MyApp> {
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
       print('Message clicked!');
       print('Message data: ${message.data}');
-      // Handle navigation
+// Handle navigation
     });
 
     FirebaseMessaging.instance.getInitialMessage().then((message) {
       if (message != null) {
         print(
             'App launched from terminated state by notification: ${message.data}');
-        // Handle navigation
+// Handle navigation
       }
     });
   }

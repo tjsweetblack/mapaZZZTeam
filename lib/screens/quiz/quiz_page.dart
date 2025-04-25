@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'dart:async';
@@ -187,7 +189,7 @@ class _MalariaQuizScreenState extends State<MalariaQuizScreen> {
   ];
 
   int _currentQuestionIndex = 0;
-  int _score = 0;
+  int _correctAnswersCount = 0; // Track correct answers, not points yet
   String? _selectedAnswer;
   bool _answerChecked = false;
   List<Map<String, dynamic>> _shuffledQuestions = [];
@@ -212,9 +214,12 @@ class _MalariaQuizScreenState extends State<MalariaQuizScreen> {
             _submitQuiz(); // Automatically submit when time is up
           });
         } else {
-          setState(() {
-            _start--;
-          });
+          if (mounted) {
+            // Check if widget is still mounted before updating state
+            setState(() {
+              _start--;
+            });
+          }
         }
       },
     );
@@ -248,20 +253,25 @@ class _MalariaQuizScreenState extends State<MalariaQuizScreen> {
       barrierDismissible: false, // User must tap button!
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(isCorrect ? 'Correct!' : 'Wrong!'),
+          title: Text(isCorrect ? 'Correto!' : 'Errado!'), // Updated text
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
-                Text(isCorrect ? '' : 'The answer was: $correctAnswer'),
+                // Modified text based on correctness
+                Text(
+                  isCorrect
+                      ? 'Boa! Você ganhou 2 pontos!' // Added points message here
+                      : 'A resposta correta era: $correctAnswer', // Updated text
+                ),
               ],
             ),
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text('Next'),
+              child: const Text('Próxima'), // Updated text
               onPressed: () {
                 Navigator.of(context).pop(); // Close the dialog
-                _nextQuestion();
+                _nextQuestion(); // Automatically go to next question
               },
             ),
           ],
@@ -278,44 +288,47 @@ class _MalariaQuizScreenState extends State<MalariaQuizScreen> {
       });
       bool isCorrect = selectedOption ==
           _shuffledQuestions[_currentQuestionIndex]['correctAnswer'];
-      _showAnswerDialog(isCorrect,
-          _shuffledQuestions[_currentQuestionIndex]['correctAnswer']);
+
       if (isCorrect) {
         setState(() {
-          _score++;
+          _correctAnswersCount++; // Increment correct answers count
         });
       }
+
+      // Show the answer dialog
+      _showAnswerDialog(isCorrect,
+          _shuffledQuestions[_currentQuestionIndex]['correctAnswer']);
     }
   }
 
   void _nextQuestion() {
+    // This is called after the answer dialog is dismissed
     setState(() {
       _selectedAnswer = null;
       _answerChecked = false;
       _currentQuestionIndex++;
       if (_currentQuestionIndex >= _shuffledQuestions.length) {
-        _submitQuiz();
+        _submitQuiz(); // Submit if it was the last question
       }
     });
   }
 
-  void _previousQuestion() {
-    if (_currentQuestionIndex > 0 && !_answerChecked) {
-      setState(() {
-        _currentQuestionIndex--;
-        _selectedAnswer = null;
-        _answerChecked = false;
-      });
-    }
-  }
+  // Removed _previousQuestion function as the button is removed
 
   void _submitQuiz() {
-    _timer?.cancel();
+    _timer?.cancel(); // Cancel the timer
+    // Calculate total points earned (2 points per correct answer)
+    final int totalPointsEarned = _correctAnswersCount * 2;
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (context) => QuizResultScreen(
-            score: _score, totalQuestions: _shuffledQuestions.length),
+          correctAnswersCount:
+              _correctAnswersCount, // Pass correct answers count
+          totalQuestions: _shuffledQuestions.length,
+          totalPointsEarned: totalPointsEarned, // Pass total points earned
+        ),
       ),
     );
   }
@@ -335,7 +348,7 @@ class _MalariaQuizScreenState extends State<MalariaQuizScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Quiz Malaria'),
-        automaticallyImplyLeading: false, // To remove the back button
+        // automaticallyImplyLeading: false, // Removed to show back button
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
@@ -389,50 +402,65 @@ class _MalariaQuizScreenState extends State<MalariaQuizScreen> {
                     isSelected &&
                     option != currentQuestion['correctAnswer'];
 
+                // Determine background and text color based on state
                 Color backgroundColor = Colors.white;
                 Color textColor = Colors.black;
-                if (isSelected) {
+                Color borderColor = Colors.grey[300]!;
+
+                if (_answerChecked) {
+                  if (isCorrect) {
+                    backgroundColor = Colors.green[100]!;
+                    textColor = Colors.green[900]!; // Darker text for contrast
+                    borderColor = Colors.green[300]!;
+                  } else if (isIncorrect) {
+                    backgroundColor = Colors.red[100]!;
+                    textColor = Colors.red[900]!; // Darker text for contrast
+                    borderColor = Colors.red[300]!;
+                  } else if (option == currentQuestion['correctAnswer']) {
+                    // Highlight the correct answer even if not selected
+                    backgroundColor = Colors.green[50]!;
+                    textColor = Colors.green[700]!;
+                    borderColor = Colors.green[200]!;
+                  }
+                } else if (isSelected) {
                   backgroundColor = Colors.blue[100]!;
-                }
-                if (isCorrect) {
-                  backgroundColor = Colors.green[100]!;
-                  textColor = Colors.white;
-                }
-                if (isIncorrect) {
-                  backgroundColor = Colors.red[100]!;
-                  textColor = Colors.white;
+                  textColor = Colors.blue[900]!;
+                  borderColor = Colors.blue[300]!;
                 }
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _answerChecked
-                          ? (isCorrect
-                              ? Colors.green[100]
-                              : (isIncorrect ? Colors.red[100] : Colors.white))
-                          : (isSelected ? Colors.blue[100] : Colors.white),
-                      foregroundColor: _answerChecked
-                          ? (isCorrect
-                              ? Colors.white
-                              : (isIncorrect ? Colors.white : Colors.black))
-                          : Colors.black,
+                      backgroundColor: backgroundColor,
+                      foregroundColor: textColor,
                       padding: EdgeInsets.all(16.0),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8.0),
-                        side: BorderSide(color: Colors.grey[300]!),
+                        side: BorderSide(
+                            color: borderColor), // Use dynamic border color
                       ),
                     ),
-                    onPressed: _answerChecked
-                        ? null
-                        : () {
-                            _checkAnswer(option);
-                          },
+                    onPressed:
+                        _answerChecked // Disable button if answer is already checked
+                            ? null
+                            : () {
+                                _checkAnswer(option);
+                              },
                     child: Row(
                       children: [
                         CircleAvatar(
-                          backgroundColor: Colors.grey[300],
-                          foregroundColor: Colors.black,
+                          backgroundColor: _answerChecked
+                              ? (isCorrect
+                                  ? Colors.green
+                                  : Colors
+                                      .red) // Green for correct, Red for incorrect
+                              : (isSelected
+                                  ? Colors.blue
+                                  : Colors.grey[
+                                      300]), // Blue if selected, Grey otherwise
+                          foregroundColor:
+                              Colors.white, // White text on colored circle
                           radius: 12,
                           child: Text(letter,
                               style: TextStyle(
@@ -451,76 +479,98 @@ class _MalariaQuizScreenState extends State<MalariaQuizScreen> {
                 );
               }).toList(),
             ),
-            SizedBox(height: 24.0),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                ElevatedButton(
-                  onPressed: _currentQuestionIndex > 0 && !_answerChecked
-                      ? _previousQuestion
-                      : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                  ),
-                  child: Icon(Icons.arrow_back),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: ElevatedButton(
-                      onPressed: _answerChecked ? _submitQuiz : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                      ),
-                      child: Text('Enviar Quiz'),
-                    ),
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: _answerChecked &&
-                          _currentQuestionIndex < _shuffledQuestions.length - 1
-                      ? () {
-                          // _nextQuestion will be called from the dialog
-                        }
-                      : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                  ),
-                  child: Icon(Icons.arrow_forward),
-                ),
-              ],
-            ),
+            // Removed the Row containing Previous, Submit, and Next buttons
           ],
         ),
       ),
+      // Removed the bottom navigation buttons
     );
   }
 }
 
-class QuizResultScreen extends StatelessWidget {
-  final int score;
+class QuizResultScreen extends StatefulWidget {
+  // Changed to StatefulWidget to use initState
+  final int correctAnswersCount; // Number of correct answers
   final int totalQuestions;
+  final int totalPointsEarned; // Total points earned (correctAnswersCount * 2)
 
-  QuizResultScreen({required this.score, required this.totalQuestions});
+  QuizResultScreen({
+    required this.correctAnswersCount,
+    required this.totalQuestions,
+    required this.totalPointsEarned, // Receive total points
+  });
+
+  @override
+  _QuizResultScreenState createState() => _QuizResultScreenState();
+}
+
+class _QuizResultScreenState extends State<QuizResultScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Add points to user document when the result screen is initialized
+    _updateUserPoints(widget.totalPointsEarned);
+  }
+
+  Future<void> _updateUserPoints(int pointsToAdd) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      print('User not logged in. Cannot update points.');
+      return;
+    }
+
+    try {
+      final userDocRef =
+          FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+      // Use a transaction to ensure atomic read and write
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final userDoc = await transaction.get(userDocRef);
+
+        if (!userDoc.exists) {
+          print('User document does not exist.');
+          // Optionally create the user document if it doesn't exist,
+          // but typically user documents are created during registration.
+          // For now, we'll just log and return.
+          return;
+        }
+
+        // Explicitly check if user data is a Map before accessing keys
+        final dynamic rawUserData = userDoc.data();
+        Map<String, dynamic>? userData;
+        if (rawUserData != null && rawUserData is Map<String, dynamic>) {
+          userData = rawUserData;
+        } else {
+          print('User data is not a Map or is null.');
+          return; // Exit if data is not in expected format
+        }
+
+        final int currentPoints =
+            userData['points'] as int? ?? 0; // Safely access points
+        final int newTotalPoints = currentPoints + pointsToAdd;
+
+        // Update the points field in the user document within the transaction
+        transaction.update(userDocRef, {'points': newTotalPoints});
+
+        print(
+            'User ${user.uid} points updated: $currentPoints + $pointsToAdd = $newTotalPoints');
+      }).catchError((error) {
+        print('Transaction failed: $error');
+        // Handle transaction errors (e.g., show a message to the user)
+      });
+    } catch (e) {
+      print('Error updating user points: $e');
+      // Handle other potential errors (e.g., show a message)
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Resultado do Quiz'),
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading:
+            false, // Keep no back button on result screen
       ),
       body: Center(
         child: Column(
@@ -531,8 +581,20 @@ class QuizResultScreen extends StatelessWidget {
               style: TextStyle(fontSize: 24.0),
             ),
             Text(
-              '$score / $totalQuestions',
+              '${widget.correctAnswersCount} / ${widget.totalQuestions}', // Show correct answers count
               style: TextStyle(fontSize: 36.0, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 20.0),
+            Text(
+              'Pontos Ganhos:',
+              style: TextStyle(fontSize: 24.0),
+            ),
+            Text(
+              '${widget.totalPointsEarned} pontos', // Display total points earned
+              style: TextStyle(
+                  fontSize: 36.0,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green), // Highlight points
             ),
             SizedBox(height: 20.0),
             ElevatedButton(
@@ -547,7 +609,13 @@ class QuizResultScreen extends StatelessWidget {
             SizedBox(height: 10.0),
             ElevatedButton(
               onPressed: () {
-                Navigator.pop(context); // Go back to the previous screen
+                // Use pop until the quiz screen is no longer in the navigation stack
+                // This prevents stacking multiple quiz result screens
+                // Navigator.popUntil(context, (route) => route.settings.name != '/quiz'); // Assuming '/quiz' is the route name for MalariaQuizScreen
+                // If you don't use named routes, you might need a different approach
+                // e.g., Navigator.pop(context); if the screen before the quiz is the target
+                // Or pop twice if the quiz was pushed on top of another screen
+                Navigator.pop(context); // Simple pop to go back one screen
               },
               child: Text('Voltar'),
             ),

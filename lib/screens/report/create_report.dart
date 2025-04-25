@@ -645,8 +645,7 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
               controller: _descriptionController,
               maxLines: 5,
               decoration: InputDecoration(
-                hintText:
-                    'Contrary to popular belief , Lorem Ipsum\nis not simply random text . It has roots in\na piece of classical Latin literature from\n45 BC , making it over 2000 years old .\nRichard McClintock , a Latin professor at\nHampden - Sydney College in Virginia ,\nlooked up one of the more obscure Latin\nwords , consectetur , from a Lorem Ipsum\npassage , and going through the cites of\nthe word in',
+                hintText: 'um breve detalhe sobe a sua reportagem',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20.0),
                 ),
