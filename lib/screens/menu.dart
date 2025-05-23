@@ -1,3 +1,4 @@
+import 'package:auth_bloc/screens/about/about.dart';
 import 'package:auth_bloc/screens/blog/blog_screen.dart';
 import 'package:auth_bloc/screens/epaludismo/epaludismo_screen.dart';
 import 'package:auth_bloc/screens/profile/profile.dart';
@@ -93,11 +94,10 @@ Widget buildAppDrawer(BuildContext context) {
                 color: Colors.red), // Using a help icon for EPaludismo
             title: Text('sobre', style: TextStyle(color: Colors.red)),
             onTap: () {
-              Navigator.pushReplacement(
+              Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) =>
-                          const EPaldudismoScreen())); // Close the drawer
+                      builder: (context) => AboutPage())); // Close the drawer
               // Handle EPaludismo action
             },
           ),

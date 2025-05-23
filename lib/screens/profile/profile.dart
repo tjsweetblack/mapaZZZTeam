@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'package:auth_bloc/api/firebase_api.dart';
+import 'package:auth_bloc/firebase_options.dart';
 import 'package:auth_bloc/logic/cubit/auth_cubit.dart';
 import 'package:auth_bloc/routing/routes.dart';
 import 'package:auth_bloc/screens/profile/rewards.dart';
@@ -73,11 +76,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Note: Email is read-only and not updated here
       };
 
-      // Remove fields from updateData if the corresponding UI was removed (e.g., username)
-      // or if the selected value is the default 'Selecione' and you want to remove it from Firestore
-      // if the field exists. This requires checking existing data or having a clear policy.
-      // For simplicity here, we only add if a non-'Selecione' value is selected.
-
       await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
@@ -144,6 +142,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
     } else {
       print('Rank matches Firestore ("$currentRank"). No update needed.');
+    }
+  }
+
+  // Function to get the correct image path based on the rank
+  String _getImageForRank(String rank) {
+    switch (rank) {
+      case 'Novinho':
+        return 'assets/images/nv.png';
+      case 'Caçador de Mosquitos':
+        return 'assets/images/cm.png';
+      case 'Fiscal Confiável':
+        return 'assets/images/fc.png';
+      case 'Herói da Comunidade':
+        return 'assets/images/hc.png';
+      default:
+        return 'https://cdn4.iconfinder.com/data/icons/glyphs/24/icons_user-512.png'; // Default
     }
   }
 
@@ -245,9 +259,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         CircleAvatar(
                           radius: 60,
-                          backgroundImage: NetworkImage(
-                            userData['photoURL'] ??
-                                'https://cdn4.iconfinder.com/data/icons/glyphs/24/icons_user-512.png',
+                          backgroundImage: AssetImage(
+                            _getImageForRank(currentRank),
+                          ),
+                          // Add the red border here
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.red, // Set border color to red
+                                width: 2.0, // Set the border width
+                              ),
+                            ),
                           ),
                         ),
                         // Edit profile picture icon - consider implementing this functionality
@@ -256,7 +279,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         //     shape: BoxShape.circle,
                         //     color: Colors.red,
                         //     border: Border.all(color: Colors.white, width: 1),
-                        //   ),
                         //   padding: const EdgeInsets.all(4.0),
                         //   child: const Icon(Icons.edit,
                         //       color: Colors.white, size: 16),

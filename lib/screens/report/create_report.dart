@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:auth_bloc/screens/main_screen.dart';
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -24,16 +23,34 @@ class CreateReportCameraScreen extends StatefulWidget {
       _CreateReportCameraScreenState();
 }
 
-class _CreateReportCameraScreenState extends State<CreateReportCameraScreen> {
+class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
+    with WidgetsBindingObserver {
   late CameraController _cameraController;
   late Future<void> _initializeCameraControllerFuture;
   List<CameraDescription> _cameras = [];
   bool _isAnalyzing = false; // Track image analysis state
+  bool _isLandscape = false; // Track orientation
+  bool _showOrientationDialog = true;
 
   @override
   void initState() {
     super.initState();
     _setupCamera();
+    WidgetsBinding.instance.addObserver(this);
+    _checkOrientation();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_cameraController == null) {
+      return;
+    }
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      _cameraController.dispose();
+    } else if (state == AppLifecycleState.resumed) {
+      _setupCamera();
+    }
   }
 
   Future<void> _setupCamera() async {
@@ -70,7 +87,21 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen> {
   @override
   void dispose() {
     _cameraController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  void _checkOrientation() {
+    final orientation = MediaQuery.of(context).orientation;
+    setState(() {
+      _isLandscape = orientation == Orientation.landscape;
+    });
+  }
+
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    _checkOrientation();
   }
 
   Future<bool> _isImageValidForReport(String imagePath) async {
@@ -134,8 +165,100 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen> {
     );
   }
 
+  Future<void> _showAnalyzingDialog() async {
+    await showDialog(
+      context: context,
+      barrierDismissible:
+          false, // User cannot dismiss the dialog while analyzing
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Analisando Imagem'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              const Text('Aguarde enquanto a IA analisa a foto...'),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showResultDialog(bool isImageValid) {
+    String title = isImageValid ? 'Imagem Aceita' : 'Imagem Não Aceita';
+    String content = isImageValid
+        ? 'A imagem foi aceita. Prossiga para os detalhes da reportagem.'
+        : 'A imagem não mostra um problema real de risco. Por favor, tente novamente.';
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(content),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop(); // Dismiss the dialog
+                if (isImageValid) {
+                  //  No need to check mounted here, because the Navigator.pushReplacement will handle the navigation.
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MapZzzPage(),
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_showOrientationDialog && !_isLandscape) {
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.screen_rotation,
+                  size: 80,
+                  color: Colors.blue,
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Por favor, vire o seu telefone para a horizontal (paisagem) para tirar a foto.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _showOrientationDialog =
+                          false; // Hide the dialog when button is pressed.
+                    });
+                  },
+                  child: const Text("Entendido"),
+                )
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Criar reportagem'),
@@ -159,7 +282,7 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen> {
         future: _initializeCameraControllerFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
-// Camera initialized, display the preview
+            // Camera initialized, display the preview
             return Stack(
               children: [
                 CameraPreview(_cameraController),
@@ -168,13 +291,13 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen> {
                   child: Padding(
                     padding: const EdgeInsets.only(top: 30.0),
                     child: Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 10),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.8),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(
+                      child: const Text(
                         'Tire foto do risco .',
                         style: TextStyle(
                           fontSize: 18,
@@ -199,12 +322,18 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen> {
                               setState(() {
                                 _isAnalyzing = true;
                               });
+                              _showAnalyzingDialog(); // Show dialog
                               try {
                                 await _initializeCameraControllerFuture;
                                 final image =
                                     await _cameraController.takePicture();
                                 bool isImageValid =
                                     await _isImageValidForReport(image.path);
+
+                                Navigator.of(context).pop(); // Dismiss dialog
+                                _showResultDialog(
+                                    isImageValid); //show result dialog
+
                                 if (isImageValid) {
                                   if (mounted) {
                                     Navigator.push(
@@ -222,6 +351,8 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen> {
                                   }
                                 }
                               } catch (e) {
+                                Navigator.of(context)
+                                    .pop(); // Dismiss dialog on error
                                 print('Error taking picture: $e');
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -251,7 +382,7 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen> {
               ],
             );
           } else if (snapshot.connectionState == ConnectionState.waiting) {
-// Otherwise, display a loading indicator
+            // Otherwise, display a loading indicator
             return const Center(child: CircularProgressIndicator());
           } else {
             return Center(
@@ -536,7 +667,7 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
             await FirebaseFirestore.instance
                 .collection('users')
                 .doc(userId)
-                .update({'points': currentPoints + 30});
+                .update({'points': currentPoints + 10});
           }
           setState(() {
             _isCreatingReport = false;
@@ -741,7 +872,7 @@ class CreateReportSuccessScreen extends StatelessWidget {
                 Icon(Icons.star_border, color: Colors.red, size: 20),
                 SizedBox(width: 4),
                 Text(
-                  '30 pontos',
+                  '10 pontos',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ],

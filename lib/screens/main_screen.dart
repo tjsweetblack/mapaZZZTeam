@@ -1,19 +1,21 @@
 import 'package:auth_bloc/api/firebase_api.dart';
 import 'package:auth_bloc/logic/cubit/auth_cubit.dart';
 import 'package:auth_bloc/routing/routes.dart';
+import 'package:auth_bloc/screens/map_info/map_info.dart';
 import 'package:auth_bloc/screens/menu.dart';
 import 'package:auth_bloc/screens/rank_info/rank_info.dart';
 import 'package:auth_bloc/screens/report/create_report.dart';
 import 'package:auth_bloc/screens/report/report_details.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart'; // Import geolocator
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:webview_flutter/webview_flutter.dart'; // Import webview_flutter
+import 'package:flutter_inappwebview/src/in_app_webview/in_app_webview.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 class MapZzzPage extends StatefulWidget {
   @override
@@ -257,18 +259,17 @@ class _MapZzzPageState extends State<MapZzzPage> {
                   TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
             ),
             Spacer(),
-            Row(
-              children: [
-                // Make the Rank and CM/Abbreviation clickable
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const RankInfoScreen()),
-                    );
-                  },
-                  child: Row(
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const RankInfoScreen()),
+                );
+              },
+              child: Row(
+                children: [
+                  Row(
                     children: [
                       Icon(Icons.military_tech, color: Colors.red, size: 18),
                       SizedBox(width: 4),
@@ -315,36 +316,38 @@ class _MapZzzPageState extends State<MapZzzPage> {
                       ),
                     ],
                   ),
-                ),
-                SizedBox(width: 8),
-                Icon(Icons.star_border, color: Colors.grey, size: 18),
-                SizedBox(width: 4),
-                // StreamBuilder for user points (this one only displays points)
-                StreamBuilder<DocumentSnapshot>(
-                  stream: userId != null
-                      ? FirebaseFirestore.instance
-                          .collection('users')
-                          .doc(userId)
-                          .snapshots()
-                      : null,
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData && snapshot.data!.exists) {
-                      final userData =
-                          snapshot.data!.data() as Map<String, dynamic>?;
-                      final points = userData?['points'] as int? ?? 0;
-                      return Text(
-                        '$points',
-                        style: TextStyle(color: Colors.black, fontSize: 16),
-                      );
-                    } else {
-                      return Text(
-                        '0', // Default value if no data or user is not logged in
-                        style: TextStyle(color: Colors.black, fontSize: 16),
-                      );
-                    }
-                  },
-                ),
-              ],
+                  SizedBox(width: 8),
+                  Icon(Icons.star_border, color: Colors.grey, size: 18),
+                  SizedBox(width: 4),
+                  // StreamBuilder for user points (this one only displays points)
+                  StreamBuilder<DocumentSnapshot>(
+                    stream: userId != null
+                        ? FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(userId)
+                            .snapshots()
+                        : null,
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData && snapshot.data!.exists) {
+                        final userData =
+                            snapshot.data!.data() as Map<String, dynamic>?;
+                        final points = userData?['points'] as int? ?? 0;
+                        return Text(
+                          '$points',
+                          style: TextStyle(color: Colors.black, fontSize: 16),
+                        );
+                      } else {
+                        return Text(
+                          '0', // Default value if no data or user is not logged in
+                          style: TextStyle(color: Colors.black, fontSize: 16),
+                        );
+                      }
+                    },
+                  ),
+                  SizedBox(width: 10),
+                  Icon(Icons.info, color: Colors.red, size: 18),
+                ],
+              ),
             ),
           ],
         ),
@@ -360,24 +363,67 @@ class _MapZzzPageState extends State<MapZzzPage> {
           ),
           Positioned(
             top: 16,
-            left: 32, // Adjust this value for desired margin
-            right: 32, // Adjust this value to be the same as left for centering
+            // Remove left and right properties to allow Center to work horizontally
+            // left: 40,
+            // right: 32,
+            // Add left: 0 and right: 0 to make Positioned span the full width
+            left: 0,
+            right: 0,
             child: Center(
-              // Wrap the Container with a Center widget
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  _riskLevelText, // Display the state variable
-                  style: TextStyle(
-                    color: Colors.red,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+              // This Center widget will now center the Row horizontally
+              child: Row(
+                // Use MainAxisSize.min so the Row only takes up needed space
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      // Optional: Add a shadow for better visibility
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          spreadRadius: 1,
+                          blurRadius: 3,
+                          offset: Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      _riskLevelText, // Display the state variable
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                   ),
-                ),
+                  SizedBox(width: 8), // Add some spacing between text and icon
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MapExplanationPage(),
+                        ),
+                      );
+                    },
+                    // Consider adding a background or padding for easier tapping
+                    child: Container(
+                      padding:
+                          const EdgeInsets.all(4.0), // Add padding for tap area
+                      decoration: BoxDecoration(
+                        color:
+                            Colors.black.withOpacity(0.3), // Slight background
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.info_outline,
+                          color: Colors.white,
+                          size: 28), // Adjusted size slightly
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -389,48 +435,69 @@ class _MapZzzPageState extends State<MapZzzPage> {
               children: [
                 GestureDetector(
                   onTap: () async {
-                    // Made onTap async
-                    // Use a proper URL for Google Maps search
-                    final String searchTerms =
-                        'hospitals near me'; // Example search terms
-                    // Construct a standard Google Maps web search URL
-                    // Using the standard format for web-based Google Maps search
-                    // Note: Using maps.google.com/search?q=... is another common format
-                    final Uri googleMapsUri = Uri.parse(
-                        'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(searchTerms)}');
+                    // Define the search query
+                    const String searchQuery = 'hospitals near me';
+                    // Use a standard Google search URL format, ensuring proper encoding
+                    final Uri googleMapsUri = Uri.https(
+                      'maps.google.com',
+                      '/',
+                      {'q': searchQuery},
+                    );
+                    final Uri uriToLaunch =
+                        googleMapsUri; // Choose which URI to try
 
-                    print(
-                        'Opening Google Maps search in external browser: $googleMapsUri');
+                    print('Attempting to launch URL: $uriToLaunch');
 
-                    // Use url_launcher to open the URL in the external application (default browser)
-                    if (await canLaunchUrl(googleMapsUri)) {
-                      launchUrl(googleMapsUri,
-                              mode: LaunchMode.externalApplication)
-                          .catchError((e) {
-                        print("Error launching Google Maps: $e");
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text(
-                                  'Could not open hospitals search in map.')),
+                    try {
+                      // Check if the URL can be launched
+                      bool canLaunch = await canLaunchUrl(uriToLaunch);
+                      print('canLaunchUrl result for $uriToLaunch: $canLaunch');
+
+                      if (canLaunch) {
+                        // Launch the URL externally (usually in the default browser)
+                        bool launched = await launchUrl(
+                          uriToLaunch,
+                          mode: LaunchMode
+                              .externalApplication, // Try to open outside the app
                         );
-                      });
-                    } else {
-                      print("Could not launch URL: $googleMapsUri");
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content:
-                                Text('Could not launch hospitals search URL.')),
-                      );
-                    }
 
-                    // Commented out the WebView navigation
-                    //  Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //     builder: (context) =>
-                    //         HospitalWebViewScreen(googleMapsUrl: googleMapsWebUrl),
-                    //   ),
-                    // );
+                        if (!launched) {
+                          print('launchUrl returned false for $uriToLaunch');
+                          if (mounted) {
+                            // Check if widget is still mounted
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text(
+                                      'Could not open the map search in browser.')), // Slightly more specific
+                            );
+                          }
+                        } else {
+                          print('Successfully launched URL: $uriToLaunch');
+                        }
+                      } else {
+                        // canLaunchUrl returned false
+                        print('System cannot handle URL: $uriToLaunch');
+                        if (mounted) {
+                          // Check if widget is still mounted
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    'Could not find an app to open the map search.')), // More user-friendly message
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      // Catch any exceptions during canLaunchUrl or launchUrl
+                      print("Error launching URL ($uriToLaunch): $e");
+                      if (mounted) {
+                        // Check if widget is still mounted
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text(
+                                  'An error occurred while trying to open map search: ${e.toString()}')),
+                        );
+                      }
+                    }
                   },
                   child: CircleAvatar(
                     backgroundColor: Colors.white,
@@ -634,18 +701,29 @@ class _ReportListState extends State<ReportList> {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(right: 8.0),
-                  child: Image.network(
-                    report['imageUrl'],
-                    height: 50,
-                    width: 50,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return SizedBox(
+                  child: CachedNetworkImage(
+                    imageUrl: report['imageUrl'],
+                    imageBuilder: (context, imageProvider) => Container(
+                      width: 50.0,
+                      height: 50.0,
+                      decoration: BoxDecoration(
+                        image: DecorationImage(
+                          image: imageProvider,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    placeholder: (context, url) => SizedBox(
                         width: 50,
                         height: 50,
-                        child: Icon(Icons.error_outline),
-                      );
-                    },
+                        child: Center(
+                            child:
+                                CircularProgressIndicator())), // Optional: Show a placeholder while loading
+                    errorWidget: (context, url, error) => SizedBox(
+                        width: 50,
+                        height: 50,
+                        child: Icon(Icons
+                            .error_outline)), // Show an error icon if it fails
                   ),
                 ),
                 Expanded(
@@ -679,100 +757,6 @@ class _ReportListState extends State<ReportList> {
 }
 
 // Import the package
-
-class HospitalWebViewScreen extends StatefulWidget {
-  final String googleMapsUrl;
-
-  const HospitalWebViewScreen({Key? key, required this.googleMapsUrl})
-      : super(key: key);
-
-  @override
-  _HospitalWebViewScreenState createState() => _HospitalWebViewScreenState();
-}
-
-class _HospitalWebViewScreenState extends State<HospitalWebViewScreen> {
-  late InAppWebViewController _webViewController;
-  double _progress = 0; // To track loading progress
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Hospitais Próximos'), // Title for the WebView screen
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black), // Back arrow color
-        // You might want to add navigation controls here later (e.g., forward/back buttons)
-      ),
-      body: Stack(
-        // Use Stack to layer the WebView and the progress bar
-        children: [
-          InAppWebView(
-            initialUrlRequest: URLRequest(
-                url: WebUri(widget.googleMapsUrl)), // Load the provided URL
-            // Use InAppWebViewSettings instead of InAppWebViewGroupOptions and InAppWebViewOptions
-            initialSettings: InAppWebViewSettings(
-              javaScriptCanOpenWindowsAutomatically: true,
-              javaScriptEnabled: true,
-              // useHybridComposition is removed in newer versions
-              // useHybridComposition: true, // Recommended for better performance (Removed)
-
-              // Android specific settings (if needed, check latest docs for parameter names)
-              // android: AndroidInAppWebViewOptions( // This structure is also likely changed
-              //   useHybridComposition: true, // Removed
-              // ),
-
-              // iOS specific settings (if needed, check latest docs for parameter names)
-              allowsInlineMediaPlayback:
-                  true, // This might be a cross-platform setting now
-              // ios: IOSInAppWebViewOptions( // This structure is also likely changed
-              //   allowsInlineMediaPlayback: true, // Handled above
-              // ),
-
-              // You can add other settings here as needed, e.g.:
-              // supportZoom: true,
-              // builtInZoomControls: true,
-              // displayZoomControls: false,
-            ),
-            onWebViewCreated: (controller) {
-              _webViewController = controller;
-            },
-            onProgressChanged: (controller, progress) {
-              // Update the loading progress
-              if (mounted) {
-                setState(() {
-                  _progress = progress / 100;
-                });
-              }
-            },
-            onLoadError: (controller, url, code, message) {
-              print("Error loading $url: $code, $message");
-              // Optionally show an error message to the user
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Failed to load page: $message')),
-              );
-            },
-            onLoadHttpError: (controller, url, statusCode, description) {
-              print("HTTP Error loading $url: $statusCode, $description");
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('HTTP Error loading page: $statusCode')),
-              );
-            },
-            // Add other callbacks as needed (e.g., onLoadStart, onLoadStop)
-          ),
-          // Show a linear progress indicator while loading
-          if (_progress < 1.0)
-            LinearProgressIndicator(
-              value: _progress,
-              backgroundColor: Colors.grey[200],
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                  Colors.red), // Use your app's theme color
-            ),
-        ],
-      ),
-    );
-  }
-}
 
 // Make sure ReportDetailPage is defined or imported elsewhere
 // import 'path/to/report_detail_page.dart'; // Example import
@@ -1014,7 +998,7 @@ class _MapWidgetState extends State<MapWidget> {
             mapController: widget.mapController,
             options: MapOptions(
               initialCenter: _currentLocation!,
-              initialZoom: 40.0,
+              initialZoom: 15.0,
               interactionOptions: InteractionOptions(
                 flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
                 cursorKeyboardRotationOptions:
@@ -1029,6 +1013,8 @@ class _MapWidgetState extends State<MapWidget> {
                 subdomains: const ['a', 'b', 'c'],
                 tileBuilder: _greyScaleTileBuilder,
               ),
+              // Use a non-moving MarkerLayer.
+
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('reports')
@@ -1208,60 +1194,53 @@ class _MapWidgetState extends State<MapWidget> {
                   return Stack(
                     children: [
                       CircleLayer(circles: heatmapCircles),
-                      MarkerLayer(markers: reportMarkers),
                       MarkerLayer(
                         markers: [
-                          if (_currentLocation != null)
-                            Marker(
-                              width: 120.0,
-                              height: 60.0,
-                              point: _currentLocation!,
-                              child: Stack(
-                                clipBehavior: Clip.none,
-                                children: [
-                                  // Location pin
-                                  const Icon(
-                                    Icons.location_pin,
-                                    color: Colors.blue,
-                                    size: 40.0,
-                                  ),
-                                  // Image bubble replaced with a Container
-                                  Positioned(
-                                    top: -30, // Adjusted to bring it closer
-                                    left: -30,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius:
-                                            BorderRadius.circular(8.0),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color:
-                                                Colors.black.withOpacity(0.2),
-                                            spreadRadius: 2,
-                                            blurRadius: 5,
-                                            offset: const Offset(0, 3),
-                                          ),
-                                        ],
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8.0, vertical: 4.0),
-                                      child: const Text(
-                                        "voçe esta aqui!",
-                                        style: TextStyle(
-                                          fontSize: 12.0,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors
-                                              .red, // Set text color to red
-                                        ),
-                                      ),
+                          Marker(
+                            width: 100.0,
+                            height: 30.0,
+                            point: _currentLocation!,
+                            child: Transform.translate(
+                              offset: const Offset(0.0, -40.0),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(8.0),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.red,
+                                      spreadRadius: 2,
+                                      blurRadius: 5,
+                                      offset: const Offset(0, 3),
                                     ),
+                                  ],
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8.0, vertical: 4.0),
+                                child: const Text(
+                                  "voçe esta aqui!",
+                                  style: TextStyle(
+                                    fontSize: 12.0,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.red,
                                   ),
-                                ],
+                                ),
                               ),
                             ),
+                          ),
+                          Marker(
+                            width: 120.0,
+                            height: 60.0,
+                            point: _currentLocation!,
+                            child: const Icon(
+                              Icons.location_pin,
+                              color: Color.fromARGB(255, 255, 255, 255),
+                              size: 40.0,
+                            ),
+                          ),
                         ],
                       ),
+                      MarkerLayer(markers: reportMarkers),
                     ],
                   );
                 },

@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart'; // Import cached_network_image
 
 class ReportDetailPage extends StatefulWidget {
   final Map<String, dynamic> report;
@@ -19,6 +20,8 @@ class ReportDetailPage extends StatefulWidget {
 
 class _ReportDetailPageState extends State<ReportDetailPage> {
   String? _userName;
+  String? _userRank; // <-- Add this variable
+
   bool _isLoadingUser = true;
   // Removed _userVote as it wasn't fully implemented and seems out of scope for this request
   bool _hasUserConfirmed = false;
@@ -50,6 +53,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
     setState(() {
       _isLoadingUser = true;
       _userName = null;
+      _userRank = null; // Reset rank on fetch
     });
     try {
       final userDoc = await FirebaseFirestore.instance
@@ -57,22 +61,43 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
           .doc(widget.report['userId']) // Use the userId from the report data
           .get();
       if (userDoc.exists) {
+        final userData = userDoc.data();
         setState(() {
-          _userName = userDoc.data()?['name']; // Get the user's name
+          _userName =
+              userData?['name'] ?? 'Unknown User'; // Get the user's name
+          _userRank = userData?['rank'] ??
+              'Novinho'; // Get the user's rank, default to 'Novinho' if null
           _isLoadingUser = false;
         });
       } else {
         setState(() {
           _userName = 'Unknown User';
+          _userRank = 'Novinho'; // Default rank if user not found
           _isLoadingUser = false;
         });
       }
     } catch (e) {
-      print("Error fetching user name: $e");
+      print("Error fetching user name/rank: $e");
       setState(() {
         _userName = 'Error Loading User';
+        _userRank = 'Novinho'; // Default rank on error
         _isLoadingUser = false;
       });
+    }
+  }
+
+  String _getAvatarAssetPath(String? rank) {
+    switch (rank) {
+      case 'Novinho':
+        return 'assets/images/nv.png';
+      case 'Caçador de Mosquito':
+        return 'assets/images/cm.png';
+      case 'Fiscal Confiável':
+        return 'assets/images/fc.png';
+      case 'Herói da Comunidade':
+        return 'assets/images/hc.png';
+      default:
+        return 'assets/images/nv.png'; // Default image if rank is unknown or null
     }
   }
 
@@ -311,7 +336,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
 
               // Update user points by adding 20
               int currentPoints = userData?['points'] ?? 0;
-              transaction.update(userDocRef, {'points': currentPoints + 20});
+              transaction.update(userDocRef, {'points': currentPoints + 5});
             });
 
             // If the transaction completes successfully
@@ -353,10 +378,6 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
       print("Error getting location: $locationError");
       await _showErrorDialog(
           'Erro ao obter localização', locationError.toString());
-    } catch (e) {
-      // Handle any other general errors
-      print("General error during confirmation: $e");
-      await _showErrorDialog('Erro geral ao confirmar', e.toString());
     } finally {
       setState(() => _isLoadingConfirmationStatus =
           false); // Hide loading indicator after completion (success or error)
@@ -371,6 +392,10 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
           'Você já reportou esta reportagem como resolvida.');
       return;
     }
+
+    // Check mounted status before proceeding with async gap
+    if (!mounted) return;
+
     setState(() {
       _isLoadingResolvedStatus =
           true; // Show loading indicator for resolved action
@@ -384,8 +409,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
         if (permission == LocationPermission.denied) {
           await _showErrorDialog('Permissão de localização negada',
               'Por favor, habilite a permissão de localização para reportar como resolvido.');
-          setState(
-              () => _isLoadingResolvedStatus = false); // Stop loading on error
+          if (mounted) setState(() => _isLoadingResolvedStatus = false);
           return;
         }
       }
@@ -394,8 +418,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
         await _showErrorDialog(
             'Permissão de localização permanentemente negada',
             'A permissão de localização foi permanentemente negada. Por favor, vá para as configurações do seu dispositivo para habilitá-la.');
-        setState(
-            () => _isLoadingResolvedStatus = false); // Stop loading on error
+        if (mounted) setState(() => _isLoadingResolvedStatus = false);
         return;
       }
 
@@ -417,11 +440,14 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
 
       // Check if the user is within the allowed distance (5 meters)
       if (distanceInMeters <= 5) {
+        // Keep 5m check for resolving
         // User is within 5 meters, proceed with updating Firestore
         final reportDocRef = FirebaseFirestore.instance
             .collection('reports')
             .doc(widget.report['id']); // Reference to the report document
 
+        // Check mounted status before accessing context across async gap
+        if (!mounted) return;
         final authCubit = context.read<AuthCubit>();
         final userId = authCubit.currentUser?.uid; // Get the current user's ID
 
@@ -429,6 +455,9 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
           final userDocRef = FirebaseFirestore.instance
               .collection('users')
               .doc(userId); // Reference to the user document
+
+          // Flag to track if the report status was set to 'fixed'
+          bool wasMarkedFixed = false;
 
           try {
             // Use a Firestore transaction to perform atomic updates
@@ -459,31 +488,52 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                     "User has already reported this report as resolved.");
               }
 
-              // Update the report's NoResolved count by incrementing
+              // Calculate the new resolved count
               int currentResolved = (reportSnapshot.data()
                       as Map<String, dynamic>)?['NoResolved'] ??
                   0;
-              transaction
-                  .update(reportDocRef, {'NoResolved': currentResolved + 1});
+              int newResolvedCount = currentResolved + 1;
+
+              // Prepare the updates for the report document
+              Map<String, dynamic> reportUpdates = {
+                'NoResolved': newResolvedCount
+              };
+
+              // Check if the count reaches the threshold to mark as fixed
+              if (newResolvedCount >= 5) {
+                reportUpdates['status'] = 'fixed';
+                wasMarkedFixed = true; // Set the flag
+              }
+
+              // Update the report document within the transaction
+              transaction.update(reportDocRef, reportUpdates);
 
               // Add the report ID to the user's list of resolved reports using arrayUnion
-              transaction.update(userDocRef, {
-                'resolvedReports': FieldValue.arrayUnion([widget.report['id']])
-              });
-
               // Update user points by adding 10
               int currentPoints = userData?['points'] ?? 0;
-              transaction.update(userDocRef, {'points': currentPoints + 10});
+              transaction.update(userDocRef, {
+                'resolvedReports': FieldValue.arrayUnion([widget.report['id']]),
+                'points': currentPoints + 15 // Add 10 points for resolving
+              });
             });
 
             // If the transaction completes successfully
-            setState(() {
-              _hasUserResolved =
-                  true; // Update local state to disable the button
-            });
+            // Check mounted status before calling setState
+            if (mounted) {
+              setState(() {
+                _hasUserResolved =
+                    true; // Update local state to disable the button
+              });
+            }
 
-            await _showSuccessDialog(
-                'Reportagem marcada como resolvida com sucesso!');
+            // Show the appropriate dialog based on whether the report was marked fixed
+            if (wasMarkedFixed) {
+              await _showReportSolvedDialog(); // Show the new "solved" dialog
+            } else {
+              // Show the standard success dialog (which navigates to SuccessScreen)
+              await _showSuccessDialog(
+                  'Reportagem marcada como resolvida com sucesso!');
+            }
           } on FirebaseException catch (e) {
             // Handle Firestore specific errors during the transaction
             await _showErrorDialog(
@@ -517,14 +567,11 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
       print("Error getting location: $locationError");
       await _showErrorDialog(
           'Erro ao obter localização', locationError.toString());
-    } catch (e) {
-      // Handle any other general errors
-      print("General error during reporting as resolved: $e");
-      await _showErrorDialog(
-          'Erro geral ao reportar como resolvido', e.toString());
     } finally {
-      setState(() => _isLoadingResolvedStatus =
-          false); // Hide loading indicator after completion
+      // Check mounted status before calling setState in finally block
+      if (mounted) {
+        setState(() => _isLoadingResolvedStatus = false);
+      }
     }
   }
 
@@ -564,15 +611,26 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                 // Close the dialog first
                 Navigator.of(context).pop();
                 // Then navigate to the SuccessScreen
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => SuccessScreen(
-                            report:
-                                widget.report, // Pass the original report map
-                            message: message,
-                          )),
-                );
+                if (message == 'Reportagem confirmada com sucesso!') {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => SuccessScreen2(
+                              report: widget.report,
+                              message: message,
+                            )),
+                  );
+                } else if (message ==
+                    'Reportagem marcada como resolvida com sucesso!') {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => SuccessScreen(
+                              report: widget.report,
+                              message: message,
+                            )),
+                  );
+                }
               },
             ),
           ],
@@ -582,21 +640,46 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
   }
 
   // Launches Google Maps to show the report location
-  _launchGoogleMaps() async {
-    final latitude = widget.report['latitude'];
-    final longitude = widget.report['longitude'];
-    // Construct a standard Google Maps URL for viewing a point
-    final url =
-        'https://maps.google.com/?q=$latitude,$longitude'; // Standard format for viewing a point
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else {
-      // Handle error if Google Maps cannot be launched
-      print('Could not launch $url');
-      await _showErrorDialog(
-          'Erro ao abrir o mapa', 'Não foi possível abrir o Google Maps.');
-    }
+// *** NEW DIALOG ***
+  // Shows a dialog indicating the report is solved and navigates back
+  Future<void> _showReportSolvedDialog() async {
+    // Ensure the context is still valid before showing the dialog
+    if (!mounted) return;
+
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // User must tap button to close
+      builder: (BuildContext dialogContext) {
+        // Use a different context name
+        return AlertDialog(
+          title: const Text('Reportagem Resolvida'),
+          content: const Text(
+              'Esta reportagem atingiu o número necessário de confirmações de resolução. Ela foi marcada como resolvida e não aparecerá mais no mapa ou na lista.'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(); // Close the dialog
+
+                // Check if the current screen (ReportDetailPage) can be popped
+                if (Navigator.canPop(context)) {
+                  Navigator.of(context).pop(); // Pop the ReportDetailPage
+                } else {
+                  // Fallback: If ReportDetailPage can't be popped (e.g., deep link),
+                  // navigate explicitly to the main screen. Adjust MapZzzPage if needed.
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => MapZzzPage()),
+                    (Route<dynamic> route) =>
+                        false, // Remove all previous routes
+                  );
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -651,20 +734,22 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                     Hero(
                       // Ensure imageUrl is not null, provide fallback
                       tag: 'reportImage-${widget.report['imageUrl']}',
-                      child: Image.network(
-                        widget.report['imageUrl'] ??
+                      child: CachedNetworkImage(
+                        imageUrl: widget.report['imageUrl'] ??
                             'https://via.placeholder.com/150',
                         width: double.infinity,
                         height: 250,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            height: 250,
-                            color: Colors.grey[300],
-                            child:
-                                Center(child: Icon(Icons.image_not_supported)),
-                          );
-                        },
+                        placeholder: (context, url) => Container(
+                          height: 250,
+                          color: Colors.grey[300],
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          height: 250,
+                          color: Colors.grey[300],
+                          child: Center(child: Icon(Icons.image_not_supported)),
+                        ),
                       ),
                     ),
                     Positioned(
@@ -712,23 +797,36 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                       SizedBox(height: 8),
                       // Button to view location on map (using WebView)
                       TextButton.icon(
-                        onPressed: () {
-                          // Use the coordinates from the original widget.report map
+                        onPressed: () async {
                           // as they are static report creation data.
                           final double? latitude = widget.report['latitude'];
                           final double? longitude = widget.report['longitude'];
 
                           if (latitude != null && longitude != null) {
                             // Construct a standard Google Maps URL for a marker
-                            final String googleMapsUrl =
-                                'https://maps.google.com/?q=$latitude,$longitude';
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    WebViewScreen(googleMapsUrl: googleMapsUrl),
-                              ),
-                            );
+                            final String googleMapsUrlString =
+                                'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';
+                            final Uri googleMapsUrl =
+                                Uri.parse(googleMapsUrlString);
+                            if (await canLaunchUrl(googleMapsUrl)) {
+                              await launchUrl(googleMapsUrl,
+                                      mode: LaunchMode.externalApplication)
+                                  .catchError((e) {
+                                print("Error launching Google Maps: $e");
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text(
+                                          'Could not open hospitals search in map.')),
+                                );
+                              });
+                            } else {
+                              print("Could not launch URL: $googleMapsUrl");
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text(
+                                        'Could not launch hospitals search URL.')),
+                              );
+                            }
                           } else {
                             _showErrorDialog('Erro',
                                 'Coordenadas da reportagem não disponíveis.');
@@ -756,21 +854,41 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                           Text('Criado por: ',
                               style: TextStyle(fontWeight: FontWeight.bold)),
                           SizedBox(width: 13),
-                          CircleAvatar(
-                            radius: 10,
-                            backgroundImage: NetworkImage(
-                              'https://cdn4.iconfinder.com/data/icons/glyphs/24/icons_user-512.png', // Consider a default user avatar or load from user profile if available
-                            ),
-                          ),
-                          SizedBox(width: 13),
                           _isLoadingUser
                               ? SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ))
-                              : Text(_userName ?? 'Loading...'),
+                                  // Show loader while fetching user data
+                                  width: 24, // Adjust size as needed
+                                  height: 24,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : CircleAvatar(
+                                  // Outer circle for the red border
+                                  radius:
+                                      12, // Slightly larger than the inner avatar
+                                  backgroundColor: Colors.red,
+                                  child: CircleAvatar(
+                                    radius: 10, // Inner avatar for the image
+                                    backgroundColor: Colors.grey[
+                                        200], // Background while image loads or if error
+                                    backgroundImage: AssetImage(
+                                      _getAvatarAssetPath(
+                                          _userRank), // Use the helper function
+                                    ),
+                                    // Optional: Add error handling for AssetImage if needed
+                                    onBackgroundImageError:
+                                        (exception, stackTrace) {
+                                      print(
+                                          'Error loading asset image: $exception');
+                                      // Optionally display a fallback icon or color
+                                    },
+                                  ),
+                                ),
+                          SizedBox(width: 13),
+                          _isLoadingUser
+                              ? Text('Loading...') // Show loading text for name
+                              : Text(_userName ??
+                                  'Unknown User'), // Display fetched name
                         ],
                       ),
                       SizedBox(height: 8),
@@ -999,7 +1117,141 @@ class SuccessScreen extends StatelessWidget {
                 Icon(Icons.star_border, color: Colors.red, size: 20),
                 SizedBox(width: 4),
                 Text(
-                  '20 pontos',
+                  '15 pontos',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 40),
+            SizedBox(
+              width: 300, // Increased width of the button.
+              height: 50, // increased height
+              child: ElevatedButton(
+                onPressed: () {
+                  if (report != null && report!.containsKey('id')) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ReportDetailPage(report: report!),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content:
+                              Text('Erro ao carregar detalhes da reportagem.')),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
+                  textStyle:
+                      const TextStyle(fontSize: 18), // Increased font size
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25.0),
+                  ),
+                ),
+                child: const Text('Ver reportagem'),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: 300, // Increased width of the button.
+              height: 50, // increased height
+              child: ElevatedButton(
+                onPressed: () {
+// Navigate back to the main map screen
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MapZzzPage(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey[700],
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
+                  textStyle:
+                      const TextStyle(fontSize: 18), // Increased font size
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25.0),
+                  ),
+                ),
+                child: const Text('voltar ao inicio'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class SuccessScreen2 extends StatelessWidget {
+  final Map<String, dynamic>? report; // Receive the report data
+  final String message;
+
+  SuccessScreen2({this.report, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('MapZzz'),
+        backgroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.black),
+        titleTextStyle:
+            const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+      ),
+      body: Padding(
+        //changed to padding
+        padding: EdgeInsets.only(top: 50),
+        child: Column(
+          //changed to column
+          //mainAxisAlignment: MainAxisAlignment.center, // Removed mainAxisAlignment
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.check_circle_outline,
+              color: Colors.red,
+              size: 120,
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Concluido .',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold), // Made message bold
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Text(
+                  'Ganhaste',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(width: 8),
+                Icon(Icons.star_border, color: Colors.red, size: 20),
+                SizedBox(width: 4),
+                Text(
+                  '5 pontos',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ],

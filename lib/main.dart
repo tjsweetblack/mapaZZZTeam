@@ -19,6 +19,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'routing/app_router.dart';
 import 'routing/routes.dart';
 import 'theming/colors.dart';
+import 'package:flutter_inappwebview/src/in_app_webview/in_app_webview.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 late String initialRoute;
 
@@ -31,7 +33,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   print('Handling a background message ${message.messageId}');
   print('Message data: ${message.data}');
-// You can perform background tasks here.
+  // You can perform background tasks here.
 }
 
 Future<void> main() async {
@@ -51,6 +53,8 @@ Future<void> main() async {
   if (!onboardingCompleted) {
     initialRoute = Routes.onboardingScreen;
   } else {
+    // Using a Completer to wait for the auth state to be determined
+    final completer = Completer<void>();
     FirebaseAuth.instance.authStateChanges().listen(
       (user) {
         if (user == null || !user.emailVerified) {
@@ -58,13 +62,19 @@ Future<void> main() async {
         } else {
           initialRoute = Routes.mainScreen;
         }
+        // Complete the completer once the initial route is set
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
       },
     );
+    // Wait for the completer to complete before running the app
+    await completer.future;
   }
 
   runApp(
     DevicePreview(
-      enabled: false, // kDebugMode,
+      enabled: true, // kDebugMode,
       builder: (context) => MyApp(router: AppRouter()),
     ),
   );
@@ -82,7 +92,7 @@ class _MyAppState extends State<MyApp> {
   bool _isLoading = true;
   List<Map<String, dynamic>> _riskZones = [];
   Timer? _locationCheckTimer;
-  final int _checkIntervalSeconds = 5; // Adjust as needed
+  // Removed _checkIntervalSeconds as we are using a fixed one-hour interval
 
   Future<List<Map<String, dynamic>>> _fetchRiskZones() async {
     try {
@@ -169,11 +179,11 @@ class _MyAppState extends State<MyApp> {
               zoneLon,
             );
 
-// Check if the user is within 300 meters of this zone
+            // Check if the user is within 300 meters of this zone
             if (distance <= 300) {
               print(
                   "User is within 300m of a zone with risk level: $zoneRiskLevel");
-// Update highestRiskLevel if the current zone's level is higher
+              // Update highestRiskLevel if the current zone's level is higher
               if (zoneRiskLevel > highestRiskLevel) {
                 highestRiskLevel = zoneRiskLevel;
               }
@@ -190,7 +200,7 @@ class _MyAppState extends State<MyApp> {
       _showProximityNotification(highestRiskLevel);
     } catch (e) {
       print("Error checking proximity: $e");
-// Handle location errors gracefully
+      // Handle location errors gracefully
     }
   }
 
@@ -256,7 +266,7 @@ class _MyAppState extends State<MyApp> {
 
     FirebaseMessaging.instance.getToken().then((token) {
       print("FCM Token: $token");
-// Save this token to your server if needed
+      // Save this token to your server if needed
     });
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -274,14 +284,14 @@ class _MyAppState extends State<MyApp> {
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
       print('Message clicked!');
       print('Message data: ${message.data}');
-// Handle navigation
+      // Handle navigation
     });
 
     FirebaseMessaging.instance.getInitialMessage().then((message) {
       if (message != null) {
         print(
             'App launched from terminated state by notification: ${message.data}');
-// Handle navigation
+        // Handle navigation
       }
     });
   }
@@ -304,11 +314,17 @@ class _MyAppState extends State<MyApp> {
     _initializeApp();
     _initLocalNotifications();
     setupPushNotifications();
-    _startLocationMonitoring();
+    _startLocationMonitoring(); // Start monitoring after initialization
   }
 
   Future<void> _initializeApp() async {
+    // Fetch risk zones first
     _riskZones = await _fetchRiskZones();
+
+    // Now that zones are fetched, perform the initial proximity check
+    await _checkProximityAndNotify();
+
+    // Delay for splash screen (adjust as needed)
     await Future.delayed(const Duration(seconds: 3));
 
     if (mounted) {
@@ -319,8 +335,9 @@ class _MyAppState extends State<MyApp> {
   }
 
   void _startLocationMonitoring() {
-    _locationCheckTimer =
-        Timer.periodic(Duration(seconds: _checkIntervalSeconds), (timer) {
+    // The initial check is now done in _initializeApp after fetching zones.
+    // Set up the periodic timer for hourly checks.
+    _locationCheckTimer = Timer.periodic(const Duration(hours: 1), (timer) {
       _checkProximityAndNotify();
     });
   }

@@ -1,109 +1,105 @@
-import 'package:auth_bloc/screens/profile/reward_pending.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
-import 'package:flutter/services.dart'; // Import for Clipboard
-import 'dart:math'; // Import for Random
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
+import 'dart:math';
+import 'package:auth_bloc/screens/profile/reward_pending.dart'; // Import the PendingRewardsPage
 
 class RewardsPage extends StatelessWidget {
-  const RewardsPage({super.key}); // Added const constructor
+  const RewardsPage({super.key});
 
-  // Function to generate a simple unique code
   String _generateClaimCode(String rewardId, String userId) {
-    // A simple approach: combine parts of IDs and a random string
-    // For a production app, consider a more robust server-side generation
     final random = Random();
-    final randomString = String.fromCharCodes(List.generate(
-        6, (_) => random.nextInt(33) + 89)); // Generate 6 random chars
+    final randomString =
+        String.fromCharCodes(List.generate(6, (_) => random.nextInt(33) + 89));
     final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-
-    // Combine parts and take a substring for a fixed length (e.g., 12 chars)
-    // This is NOT guaranteed to be globally unique or cryptographically secure
-    final base = '${rewardId.substring(0, min(4, rewardId.length))}'
-        '${userId.substring(0, min(4, userId.length))}'
-        '${timestamp.substring(timestamp.length - min(4, timestamp.length))}'
-        '$randomString';
-
-    return base
-        .substring(0, min(12, base.length))
-        .toUpperCase(); // Use uppercase
+    final base =
+        '${rewardId.substring(0, min(4, rewardId.length))}${userId.substring(0, min(4, userId.length))}${timestamp.substring(timestamp.length - min(4, timestamp.length))}$randomString';
+    return base.substring(0, min(12, base.length)).toUpperCase();
   }
 
-  // Function to handle claiming a reward
-  Future<String?> _claimReward(String userId, String rewardId) async {
+  Future<String?> _claimReward(String userId, String rewardId, int rewardPoints,
+      BuildContext context) async {
+    // Add BuildContext
     try {
       final userDocRef =
           FirebaseFirestore.instance.collection('users').doc(userId);
       final userDoc = await userDocRef.get();
-      final dynamic rawUserData = userDoc.data(); // Get raw data
+      final dynamic rawUserData = userDoc.data();
 
       Map<String, dynamic>? userData;
-      // Explicitly check if data is a Map before using it
       if (rawUserData != null && rawUserData is Map<String, dynamic>) {
         userData = rawUserData;
       }
 
       if (userData != null) {
-        // Access 'pending' field safely now that userData is confirmed as Map<String, dynamic>
-        // Ensure 'pending' is treated as List<dynamic> to handle potential null or non-list data
-        final List<dynamic> pendingListDynamic = userData['pending'] ?? [];
-        List<Map<String, dynamic>> pendingRewards = pendingListDynamic
-            .whereType<Map<String, dynamic>>() // Filter out non-map items
-            .toList();
+        // Changed from 'pending' to 'rewards'
+        final List<dynamic> userRewardsDynamic = userData['rewards'] ?? [];
+        List<Map<String, dynamic>> userRewards =
+            userRewardsDynamic.whereType<Map<String, dynamic>>().toList();
 
-        // Check if the reward ID is already in the pending list (check within the maps)
-        bool isAlreadyPending =
-            pendingRewards.any((item) => item['rewardId'] == rewardId);
+        // Check for existing pending reward
+        bool isAlreadyPending = userRewards.any((item) =>
+            item['rewardId'] == rewardId && item['status'] == 'pending');
 
         if (!isAlreadyPending) {
-          // Generate the claim code
           final String claimCode = _generateClaimCode(rewardId, userId);
-
-          // Create the new pending item map
-          final newPendingItem = {
+          // Added status field
+          final newRewardItem = {
             'rewardId': rewardId,
             'claimCode': claimCode,
-            'timestamp': Timestamp.now(), // <--- CORRECTED: Use Timestamp.now()
+            'timestamp': Timestamp.now(),
+            'status':
+                'pending', // Initial status is pending // <--- ADDED STATUS FIELD
           };
 
-          // Add the new item to the pending list
-          pendingRewards.add(newPendingItem);
+          userRewards.add(newRewardItem);
 
-          // Update the user document with the new list
-          await userDocRef.update({
-            'pending': pendingRewards,
-          });
+          // Deduct points
+          final int currentUserPoints = userData['points'] ?? 0;
+          if (currentUserPoints >= rewardPoints) {
+            await userDocRef.update({
+              'rewards': userRewards, // Changed from 'pending' to 'rewards'
+              'points': currentUserPoints - rewardPoints,
+            });
+          } else {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Insufficient points to claim this reward.'),
+                ),
+              );
+            }
+            return null;
+          }
 
           print(
-              'Reward $rewardId added to pending list for user $userId with code $claimCode');
-          return claimCode; // Return the generated code
+              'Reward $rewardId added to rewards list for user $userId with code $claimCode and status pending');
+          return claimCode;
         } else {
-          print('Reward $rewardId is already in pending list for user $userId');
-          // Optionally retrieve the existing code if needed, but for now, just indicate it's pending
-          // You could return null or a specific value to indicate it was already pending
-          return null; // Indicate it was already pending
+          print('Reward $rewardId is already pending for user $userId');
+          return null;
         }
       } else {
         print('Error claiming reward: User data is null or not a Map.');
-        return null; // Indicate failure
+        return null;
       }
     } catch (e) {
       print('Error claiming reward: $e');
-      return null; // Indicate failure
+      return null;
     }
   }
 
-  // Function to show the claim code pop-up
   void _showClaimCodeDialog(BuildContext context, String claimCode) {
     showDialog(
       context: context,
-      barrierDismissible: false, // User must tap a button to close
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Código de Reivindicação',
               textAlign: TextAlign.center),
           content: Column(
-            mainAxisSize: MainAxisSize.min, // Make column fit content
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               const Text(
@@ -112,13 +108,12 @@ class RewardsPage extends StatelessWidget {
               ),
               const SizedBox(height: 12.0),
               Center(
-                // Center the code text
                 child: Text(
                   claimCode,
                   style: const TextStyle(
                     fontSize: 24.0,
                     fontWeight: FontWeight.bold,
-                    color: Colors.red, // Highlight the code
+                    color: Colors.red,
                   ),
                 ),
               ),
@@ -142,13 +137,12 @@ class RewardsPage extends StatelessWidget {
                       content:
                           Text('Código copiado para a área de transferência!')),
                 );
-                // No need to close the dialog here, user can copy multiple times
               },
             ),
             TextButton(
               child: const Text('OK'),
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
             ),
           ],
@@ -159,7 +153,7 @@ class RewardsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser; // Get current user
+    final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
       return Scaffold(
@@ -172,20 +166,17 @@ class RewardsPage extends StatelessWidget {
       backgroundColor: Colors.white,
       appBar: AppBar(
         leading: IconButton(
-          icon:
-              const Icon(Icons.chevron_left, color: Colors.black), // Black icon
+          icon: const Icon(Icons.chevron_left, color: Colors.black),
           onPressed: () {
             Navigator.pop(context);
           },
         ),
-        title: const Text('Prêmios',
-            style: TextStyle(color: Colors.black)), // Black title
+        title: const Text('Prêmios', style: TextStyle(color: Colors.black)),
         centerTitle: true,
-        backgroundColor: Colors.white, // White AppBar background
-        elevation: 0, // Remove shadow
+        backgroundColor: Colors.white,
+        elevation: 0,
       ),
       body: StreamBuilder<DocumentSnapshot>(
-        // Stream for user data
         stream: FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
@@ -195,52 +186,38 @@ class RewardsPage extends StatelessWidget {
             return Center(
                 child: Text('Error loading user data: ${userSnapshot.error}'));
           }
-          // You can still show a loading indicator specifically for the user data fetch if needed
-          // if (userSnapshot.connectionState == ConnectionState.waiting) {
-          //   return const Center(child: CircularProgressIndicator());
-          // }
 
-          // Explicitly check if user data is a Map before accessing keys
           final dynamic rawUserData = userSnapshot.data?.data();
           Map<String, dynamic>? userData;
-          // Corrected variable name check here
           if (rawUserData != null && rawUserData is Map<String, dynamic>) {
             userData = rawUserData;
           }
 
-          // Now access 'points' and 'pending' using the potentially null userData Map
-          // These lines should now be safe because userData is either a valid Map or null
           final int userPoints = userData?['points'] as int? ?? 0;
 
-          // Safely get the pending list, ensuring it's treated as a List of Maps
-          final List<dynamic> pendingListDynamic = userData?['pending'] ?? [];
-          final List<Map<String, dynamic>> pendingRewardsMaps =
-              pendingListDynamic
-                  .whereType<
-                      Map<String, dynamic>>() // Filter out any non-map entries
-                  .toList();
+          // Changed from 'pending' to 'rewards'
+          final List<dynamic> userRewardsDynamic = userData?['rewards'] ?? [];
+          List<Map<String, dynamic>> userRewards =
+              userRewardsDynamic.whereType<Map<String, dynamic>>().toList();
 
-          // Extract just the reward IDs for checking if a reward is pending
-          final List<String> pendingRewardIds = pendingRewardsMaps
-              .map((item) =>
-                  item['rewardId'] as String?) // Map to rewardId (can be null)
-              .where((id) => id != null) // Filter out null IDs
-              .cast<String>() // Cast to non-nullable String
-              .toList();
+          // Filter pending rewards
+          final List<Map<String, dynamic>> pendingRewards =
+              userRewards.where((item) => item['status'] == 'pending').toList();
+          final int pendingCount = pendingRewards.length;
 
-          // Build the main content based on user data and rewards data
           return Column(
             children: [
-              // Pending Rewards Banner
-              if (pendingRewardIds
-                  .isNotEmpty) // Show only if there are pending rewards
+              // Display number of pending rewards
+              if (pendingCount > 0)
                 GestureDetector(
+                  // Wrap with GestureDetector
                   onTap: () {
                     // Navigate to Pending Rewards Page
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => const PendingRewardsPage()),
+                          builder: (context) =>
+                              const PendingRewardsPage()), // Use const here
                     );
                   },
                   child: Container(
@@ -248,12 +225,12 @@ class RewardsPage extends StatelessWidget {
                         horizontal: 16.0, vertical: 8.0),
                     padding: const EdgeInsets.all(12.0),
                     decoration: BoxDecoration(
-                      color: Colors.red,
+                      color: Colors.red, // Background color for pending count
                       borderRadius: BorderRadius.circular(8.0),
                     ),
                     child: Center(
                       child: Text(
-                        '${pendingRewardIds.length} prêmios pendentes',
+                        '$pendingCount prêmios pendentes', // Label with count
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -263,12 +240,8 @@ class RewardsPage extends StatelessWidget {
                     ),
                   ),
                 ),
-
-              // Rewards List (using the existing StreamBuilder)
               Expanded(
-                // Use Expanded to make the ListView take available space
                 child: StreamBuilder<QuerySnapshot>(
-                  // Stream for rewards data
                   stream: FirebaseFirestore.instance
                       .collection('reward')
                       .snapshots(),
@@ -281,9 +254,7 @@ class RewardsPage extends StatelessWidget {
 
                     if (rewardsSnapshot.connectionState ==
                         ConnectionState.waiting) {
-                      return const Center(
-                          child:
-                              CircularProgressIndicator()); // Show loading for rewards
+                      return const Center(child: CircularProgressIndicator());
                     }
 
                     if (rewardsSnapshot.data == null ||
@@ -294,52 +265,45 @@ class RewardsPage extends StatelessWidget {
                     return ListView(
                       children: rewardsSnapshot.data!.docs
                           .map((DocumentSnapshot document) {
-                        Map<String, dynamic> data = document.data() as Map<
-                            String,
-                            dynamic>; // Cast is okay here as it's reward data doc.data()
-                        final String rewardId =
-                            document.id; // Get the document ID
-                        final int rewardPoints = data['points'] ??
-                            0; // Access points from reward data
+                        Map<String, dynamic> data =
+                            document.data() as Map<String, dynamic>;
+                        final String rewardId = document.id;
+                        final int rewardPoints = data['points'] ?? 0;
 
-                        // Determine button state
                         bool canClaim = userPoints >= rewardPoints;
-                        bool isPending = pendingRewardsMaps.any((item) =>
-                            item['rewardId'] ==
-                            rewardId); // Check if rewardId is in any pending map
+                        // Check if this reward is in the user's pending rewards
+                        bool isPending = pendingRewards
+                            .any((item) => item['rewardId'] == rewardId);
 
                         String buttonText;
                         Color buttonColor;
                         VoidCallback? onPressed;
-                        Color?
-                            itemStrokeColor; // Use for highlighting pending items
+                        Color? itemStrokeColor;
 
                         if (isPending) {
                           buttonText = 'Pendente';
-                          buttonColor =
-                              Colors.orange; // Or another color for pending
-                          onPressed = null; // Disable button
-                          itemStrokeColor =
-                              Colors.orange; // Highlight pending item
+                          buttonColor = Colors.orange;
+                          onPressed = null;
+                          itemStrokeColor = Colors.orange;
                         } else if (canClaim) {
                           buttonText = 'Reivindicar';
                           buttonColor = Colors.red;
                           onPressed = () async {
-                            // Make onPressed async
-                            final String? claimCode =
-                                await _claimReward(user.uid, rewardId);
+                            final String? claimCode = await _claimReward(
+                                user.uid,
+                                rewardId,
+                                rewardPoints,
+                                context); // Pass rewardPoints and context
                             if (claimCode != null && context.mounted) {
-                              // Check if claim was successful and widget is mounted
                               _showClaimCodeDialog(context, claimCode);
                             }
                           };
-                          itemStrokeColor = null; // No special stroke
+                          itemStrokeColor = null;
                         } else {
                           buttonText = 'Pontos Insuficientes';
-                          buttonColor =
-                              Colors.grey; // Grey out if not enough points
-                          onPressed = null; // Disable button
-                          itemStrokeColor = null; // No special stroke
+                          buttonColor = Colors.grey;
+                          onPressed = null;
+                          itemStrokeColor = null;
                         }
 
                         return _buildRewardItem(
@@ -348,9 +312,8 @@ class RewardsPage extends StatelessWidget {
                           points: rewardPoints,
                           buttonText: buttonText,
                           buttonColor: buttonColor,
-                          onPressed:
-                              onPressed, // Pass the determined onPressed callback
-                          strokeColor: itemStrokeColor, // Pass the stroke color
+                          onPressed: onPressed,
+                          strokeColor: itemStrokeColor,
                         );
                       }).toList(),
                     );
@@ -370,7 +333,7 @@ class RewardsPage extends StatelessWidget {
     required int points,
     required String buttonText,
     required Color buttonColor,
-    required VoidCallback? onPressed, // Added onPressed callback
+    required VoidCallback? onPressed,
     Color? strokeColor,
   }) {
     return Container(
@@ -380,9 +343,7 @@ class RewardsPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(10.0),
         border: Border.all(
           color: strokeColor ?? Colors.grey.shade300,
-          width: strokeColor != null
-              ? 2.0
-              : 1.0, // Thicker stroke for highlighted items
+          width: strokeColor != null ? 2.0 : 1.0,
         ),
       ),
       child: Padding(
@@ -396,10 +357,9 @@ class RewardsPage extends StatelessWidget {
                 child: image.isNotEmpty
                     ? Image.network(
                         image,
-                        // Optional: Add error handling for network image
                         errorBuilder: (context, error, stackTrace) {
                           return const Icon(Icons.image_not_supported,
-                              size: 50, color: Colors.grey); // Show error icon
+                              size: 50, color: Colors.grey);
                         },
                         loadingBuilder: (context, child, loadingProgress) {
                           if (loadingProgress == null) return child;
@@ -414,9 +374,7 @@ class RewardsPage extends StatelessWidget {
                         },
                       )
                     : const Icon(Icons.card_giftcard,
-                        size: 50,
-                        color: Colors
-                            .grey), // Show gift icon if image URL is empty
+                        size: 50, color: Colors.grey),
               ),
             ),
             const SizedBox(height: 16.0),
@@ -443,10 +401,10 @@ class RewardsPage extends StatelessWidget {
             Align(
               alignment: Alignment.bottomLeft,
               child: ElevatedButton(
-                onPressed: onPressed, // Use the passed onPressed callback
+                onPressed: onPressed,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: buttonColor,
-                  foregroundColor: Colors.white, // Text color
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20.0),
                   ),
