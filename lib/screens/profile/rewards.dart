@@ -103,7 +103,7 @@ class RewardsPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               const Text(
-                'Este é o código que vais usar para reivindicar este prêmio:',
+                'Este é o código que usarás para reivindicar o seu prêmio:',
                 style: TextStyle(fontSize: 16.0),
               ),
               const SizedBox(height: 12.0),
@@ -393,7 +393,7 @@ class RewardsPage extends StatelessWidget {
                   size: 20.0,
                 ),
                 const SizedBox(width: 4.0),
-                Text('pontos necessario: $points pontos',
+                Text('Pontos necessarios: $points pontos',
                     style: const TextStyle(color: Colors.black87)),
               ],
             ),

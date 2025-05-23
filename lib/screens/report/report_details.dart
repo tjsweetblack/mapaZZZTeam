@@ -246,8 +246,8 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          await _showErrorDialog('Permissão de localização negada',
-              'Por favor, habilite a permissão de localização para confirmar a reportagem.');
+          await _showErrorDialog('GPS desativado',
+              'Por favor, habilite a permissão da localização.');
           setState(() =>
               _isLoadingConfirmationStatus = false); // Stop loading on error
           return;
@@ -371,7 +371,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
       } else {
         // User is too far from the report location
         await _showErrorDialog('Localização distante',
-            'Nao se encontras no local da reportagem. Chegue mais proximo, 5 metros pelo menos de distancia.');
+            'Chegue mais próximo do local reportado, distância mínima de 5 metros.');
       }
     } catch (locationError) {
       // Handle errors related to getting the user's location
@@ -388,8 +388,8 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
   Future<void> _reportAsResolved() async {
     // Prevent marking as resolved if the user has already done so
     if (_hasUserResolved) {
-      await _showErrorDialog('Já reportado como resolvido',
-          'Você já reportou esta reportagem como resolvida.');
+      await _showErrorDialog('Dado como resolvido',
+          'Você já deu este reporte como resolvido.');
       return;
     }
 
@@ -408,7 +408,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           await _showErrorDialog('Permissão de localização negada',
-              'Por favor, habilite a permissão de localização para reportar como resolvido.');
+              'Por favor, habilite a permissão de localização para alterar o estado do reporte.');
           if (mounted) setState(() => _isLoadingResolvedStatus = false);
           return;
         }
@@ -654,7 +654,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
         return AlertDialog(
           title: const Text('Reportagem Resolvida'),
           content: const Text(
-              'Esta reportagem atingiu o número necessário de confirmações de resolução. Ela foi marcada como resolvida e não aparecerá mais no mapa ou na lista.'),
+              'Esta reportagem atingiu o número necessário de confirmações de resolução. Ela foi dadacomo resolvida e não aparecerá na lista de reportagens.'),
           actions: <Widget>[
             TextButton(
               child: const Text('OK'),
@@ -915,7 +915,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           SizedBox(width: 8),
-                          Text('Número de confirmações',
+                          Text(' Confirmações',
                               style: TextStyle(color: Colors.grey)),
                         ],
                       ),
@@ -930,7 +930,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           SizedBox(width: 8),
-                          Text('Número de confirmações de resolvidos',
+                          Text(' Resolvido',
                               style: TextStyle(color: Colors.green)),
                         ],
                       ),
@@ -1069,7 +1069,7 @@ class SuccessScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('MapZzz'),
+        title: const Text('MapZZZ'),
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black),
         titleTextStyle:
@@ -1090,7 +1090,7 @@ class SuccessScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             const Text(
-              'Concluido .',
+              'Concluído .',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -1182,7 +1182,7 @@ class SuccessScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(25.0),
                   ),
                 ),
-                child: const Text('voltar ao inicio'),
+                child: const Text('Voltar ao inicio'),
               ),
             ),
           ],
@@ -1203,7 +1203,7 @@ class SuccessScreen2 extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('MapZzz'),
+        title: const Text('MapZZZ'),
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black),
         titleTextStyle:
@@ -1316,7 +1316,7 @@ class SuccessScreen2 extends StatelessWidget {
                     borderRadius: BorderRadius.circular(25.0),
                   ),
                 ),
-                child: const Text('voltar ao inicio'),
+                child: const Text('Voltar ao inicio'),
               ),
             ),
           ],
@@ -1350,7 +1350,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('localizacao da reportagem'),
+        title: const Text('localização da reportagem'),
       ),
       body: WebViewWidget(controller: controller),
     );

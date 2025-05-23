@@ -79,7 +79,7 @@ Widget buildAppDrawer(BuildContext context) {
           ListTile(
             leading: Icon(Icons.help_outline,
                 color: Colors.red), // Using a help icon for EPaludismo
-            title: Text('EPaludismo ?', style: TextStyle(color: Colors.red)),
+            title: Text('EPaludismo?', style: TextStyle(color: Colors.red)),
             onTap: () {
               Navigator.pushReplacement(
                   context,
@@ -92,7 +92,7 @@ Widget buildAppDrawer(BuildContext context) {
           ListTile(
             leading: Icon(Icons.info_outline,
                 color: Colors.red), // Using a help icon for EPaludismo
-            title: Text('sobre', style: TextStyle(color: Colors.red)),
+            title: Text('Sobre', style: TextStyle(color: Colors.red)),
             onTap: () {
               Navigator.push(
                   context,
@@ -122,7 +122,7 @@ Widget buildAppDrawer(BuildContext context) {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Estas em',
+                  'Localização atual',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 8),
@@ -141,7 +141,7 @@ Widget buildAppDrawer(BuildContext context) {
             padding:
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Text(
-              '42 Luanda ISPTEC', // Example location from image
+              '42 Luanda, ISPTEC', // Example location from image
               style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
           ),

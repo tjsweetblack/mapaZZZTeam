@@ -23,7 +23,7 @@ class _EPaldudismoScreenState extends State<EPaldudismoScreen> {
     return Scaffold(
       appBar: AppBar(
         title:
-            const Text('EPaludismo ?', style: TextStyle(color: Colors.black)),
+            const Text('EPaludismo?', style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black),
         leading: IconButton(
@@ -44,7 +44,7 @@ class _EPaldudismoScreenState extends State<EPaldudismoScreen> {
           children: [
             const SizedBox(height: 30), // Increased spacing
             const Text(
-              'Datalhe os sintomas do paciente e receba a probalidade de malaria',
+              'Insira os seus sintomas para receber a probabilidade de malaria',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 18, // Slightly reduced font size
@@ -54,7 +54,7 @@ class _EPaldudismoScreenState extends State<EPaldudismoScreen> {
             ),
             const SizedBox(height: 30), // Increased spacing
             const Text(
-              'Detalhes de sintomas',
+              'Insira detalhadamente os seus sintomas',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.red,
@@ -75,7 +75,7 @@ class _EPaldudismoScreenState extends State<EPaldudismoScreen> {
                 decoration: const InputDecoration(
                   border: InputBorder.none,
                   hintText:
-                      'Descreve como te sentes no momento, ou os symtomas que sentes npo momento.', // Placeholder text as in the image
+                      'Descreva os seus sintomas.', // Placeholder text as in the image
                   hintStyle: TextStyle(color: Colors.grey),
                 ),
                 style: const TextStyle(color: Colors.black87),

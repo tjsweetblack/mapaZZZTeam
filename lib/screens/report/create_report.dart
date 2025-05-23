@@ -150,7 +150,7 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
         return AlertDialog(
           title: const Text('Foto Inválida'),
           content: const Text(
-            'A foto não mostra um problema real de risco. Por favor, tire uma foto de um local com água parada, vegetação excessiva ou outros potenciais focos de mosquito.',
+            'A foto não mostra um problema real de risco. Por favor, tire uma foto de um local com água parada, vegetação excessiva ou outros potenciais riscos de focos de mosquito.',
           ),
           actions: <Widget>[
             TextButton(
@@ -187,7 +187,7 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
   }
 
   void _showResultDialog(bool isImageValid) {
-    String title = isImageValid ? 'Imagem Aceita' : 'Imagem Não Aceita';
+    String title = isImageValid ? 'Imagem Aceite' : 'Imagem Não Aceite';
     String content = isImageValid
         ? 'A imagem foi aceita. Prossiga para os detalhes da reportagem.'
         : 'A imagem não mostra um problema real de risco. Por favor, tente novamente.';
@@ -298,7 +298,7 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
-                        'Tire foto do risco .',
+                        'Tire uma foto da zona de risco.',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -592,7 +592,7 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
     if (title.isEmpty || description.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Por favor, preencha o título e a descrição.')),
+            content: Text('Por favor, insira o título e a descrição da imagem.')),
       );
       return;
     }
@@ -726,7 +726,7 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('MapZzz'),
+        title: const Text('MapZZZ'),
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black),
         titleTextStyle:
@@ -750,7 +750,7 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch, // Change to .stretch
           children: [
             const Text(
-              'Detalhe o risco e as potencias\ncausas do risco',
+              'Explique detalhadamente o situação e as suas potenciais causas',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center, //Center the text
             ),
@@ -776,7 +776,7 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
               controller: _descriptionController,
               maxLines: 5,
               decoration: InputDecoration(
-                hintText: 'um breve detalhe sobe a sua reportagem',
+                hintText: 'Um breve resumo da a sua reportagem',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20.0),
                 ),
@@ -824,7 +824,7 @@ class CreateReportSuccessScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('MapZzz'),
+        title: const Text('MapZZZ'),
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black),
         titleTextStyle:
@@ -845,7 +845,7 @@ class CreateReportSuccessScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             const Text(
-              'Concluido .',
+              'Concluido.',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -854,7 +854,7 @@ class CreateReportSuccessScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              "Reportagem criada com sucesso .",
+              "Reportagem criada com sucesso.",
               textAlign: TextAlign.center,
               style: const TextStyle(
                   fontSize: 16,
@@ -937,7 +937,7 @@ class CreateReportSuccessScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(25.0),
                   ),
                 ),
-                child: const Text('voltar ao inicio'),
+                child: const Text('Voltar ao inicio'),
               ),
             ),
           ],

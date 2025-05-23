@@ -139,16 +139,16 @@ class _MapZzzPageState extends State<MapZzzPage> {
       String initialRiskText;
       switch (highestRiskLevel) {
         case 1:
-          initialRiskText = 'Estas em uma zona de baixo risco.';
+          initialRiskText = 'Zona de baixo risco.';
           break;
         case 2:
-          initialRiskText = 'Estas em uma zona de médio risco.';
+          initialRiskText = 'Zona de médio risco.';
           break;
         case 3:
-          initialRiskText = 'Estas em uma zona de alto risco.';
+          initialRiskText = 'Zona de alto risco.';
           break;
         default: // riskLevel is 0
-          initialRiskText = 'Estas em zona sem risco.';
+          initialRiskText = 'Zona segura.';
           break;
       }
 
@@ -436,7 +436,7 @@ class _MapZzzPageState extends State<MapZzzPage> {
                 GestureDetector(
                   onTap: () async {
                     // Define the search query
-                    const String searchQuery = 'hospitals near me';
+                    const String searchQuery = 'Hospitais mais próximos';
                     // Use a standard Google search URL format, ensuring proper encoding
                     final Uri googleMapsUri = Uri.https(
                       'maps.google.com',
@@ -573,7 +573,7 @@ class _MapZzzPageState extends State<MapZzzPage> {
                     ),
                     SizedBox(height: 16),
                     Text(
-                      'Reportagems',
+                      'Reportagens',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -677,7 +677,7 @@ class _ReportListState extends State<ReportList> {
 
     if (_reports.isEmpty) {
       return Center(
-          child: Text('No active reports found.')); //show no active reports
+          child: Text('Reportes não encontrados.')); //show no active reports
     }
 
     return ListView.builder(
@@ -781,7 +781,7 @@ class _MapWidgetState extends State<MapWidget> {
   bool _locationFetched = false;
   bool _initialLoadDone = false;
   List<CircleMarker> _currentHeatmapCircles = [];
-  String _riskLevelText = 'Estas em zona sem risco .';
+  String _riskLevelText = 'Zona segura.';
 
   @override
   void initState() {
@@ -1167,15 +1167,15 @@ class _MapWidgetState extends State<MapWidget> {
                       if (distanceToCircleCenter <= circle.radius) {
                         if (circle.color.opacity == 0.3) {
                           currentRiskLevelText =
-                              'Estas em zona de baixo risco .';
+                              'Zona de baixo risco.';
                           break;
                         } else if (circle.color.opacity == 0.6) {
                           currentRiskLevelText =
-                              'Estas em zona de medio risco .';
+                              'Zona de médio risco.';
                           break;
                         } else if (circle.color.opacity == 0.9) {
                           currentRiskLevelText =
-                              'Estas em zona de alto risco .';
+                              'Zona de alto risco .';
                           break;
                         }
                       }
@@ -1218,7 +1218,7 @@ class _MapWidgetState extends State<MapWidget> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8.0, vertical: 4.0),
                                 child: const Text(
-                                  "voçe esta aqui!",
+                                  "Sua localização!",
                                   style: TextStyle(
                                     fontSize: 12.0,
                                     fontWeight: FontWeight.bold,

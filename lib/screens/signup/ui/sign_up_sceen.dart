@@ -74,7 +74,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                "Criar Sua Conta",
+                "Criar Conta",
                 style: TextStyles.font24Blue700Weight.copyWith(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
@@ -82,7 +82,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                "Crie uma conta para explorar noticias.",
+                "Crie uma conta para explorar notícias.",
                 style: TextStyles.font14Grey400Weight.copyWith(
                     fontSize: 16,
                     color:
@@ -381,7 +381,7 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                "Defina senhas complexas para proteger",
+                "Defina senhas complexas para maior segurança",
                 style: TextStyles.font14Grey400Weight.copyWith(
                     fontSize: 16,
                     color:
