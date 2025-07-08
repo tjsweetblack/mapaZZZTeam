@@ -179,7 +179,7 @@ class _FindTheWordState extends State<FindTheWord> {
           onPanUpdate: (details) => _onPanUpdate(details, constraints),
           onPanEnd: (details) => _onPanEnd(details, constraints),
           child: Container(
-            color: Colors.white,
+            color: const Color.fromARGB(255, 255, 219, 219),
             child: GridView.builder(
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

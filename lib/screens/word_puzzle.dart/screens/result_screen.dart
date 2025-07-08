@@ -4,11 +4,13 @@ import 'home_screen.dart';
 class ResultScreen extends StatelessWidget {
   final String level;
   final int total;
+  final int found; // <--- ADD THIS LINE
 
   const ResultScreen({
     super.key,
     required this.level,
     required this.total,
+        required this.found, // <--- ADD THIS LINE
   });
 
   @override

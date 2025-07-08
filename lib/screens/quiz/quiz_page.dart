@@ -282,22 +282,25 @@ class _MalariaQuizScreenState extends State<MalariaQuizScreen> {
 
   void _checkAnswer(String selectedOption) {
     if (!_answerChecked) {
+      final bool isCorrect = selectedOption ==
+          _shuffledQuestions[_currentQuestionIndex]['correctAnswer'];
+
       setState(() {
         _selectedAnswer = selectedOption;
         _answerChecked = true;
-      });
-      bool isCorrect = selectedOption ==
-          _shuffledQuestions[_currentQuestionIndex]['correctAnswer'];
-
-      if (isCorrect) {
-        setState(() {
+        if (isCorrect) {
           _correctAnswersCount++; // Increment correct answers count
-        });
-      }
+        }
+      });
 
-      // Show the answer dialog
-      _showAnswerDialog(isCorrect,
-          _shuffledQuestions[_currentQuestionIndex]['correctAnswer']);
+      // Add a short delay so the user can see the result
+      Future.delayed(const Duration(milliseconds: 1500), () {
+        if (mounted) {
+          // Show the answer dialog after the delay
+          _showAnswerDialog(isCorrect,
+              _shuffledQuestions[_currentQuestionIndex]['correctAnswer']);
+        }
+      });
     }
   }
 

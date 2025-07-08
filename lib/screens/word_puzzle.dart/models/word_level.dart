@@ -11,7 +11,7 @@ final List<WordLevel> wordLevels = [
     words: [ 'REDE', 'RIR']),
   WordLevel(
     title: 'Nível 2 - Médio',
-    words: ['PARASITA', 'SINTOMA', 'POSTO', 'TRATAMENTO', 'REPELENTE'],
+    words: ['PARASITA', 'SINTOMA', 'POSTO', 'REPELENTE'],
   ),
   WordLevel(
     title: 'Nível 3 - Difícil',
