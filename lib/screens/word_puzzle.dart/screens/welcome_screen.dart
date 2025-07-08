@@ -24,7 +24,7 @@ class WelcomeScreen extends StatelessWidget {
               // Imagem ou Ícone (Opcional)
               // Você pode adicionar uma imagem relacionada à malária ou um ícone grande
               // Exemplo: Image.asset('assets/mosquito_icon.png', height: 100),
-              Image.asset('mosquito.jpg', height: 100),
+              Image.asset('assets/images/logo/logo.png', height: 100),
               //Icon(Icons.health_and_safety, size: 100, color: Colors.red.shade700),
               //onst SizedBox(height: 30),
 

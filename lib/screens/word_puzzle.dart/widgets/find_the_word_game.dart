@@ -6,7 +6,6 @@ import 'dart:math';
 class FindTheWord extends StatefulWidget {
   final List<String> words;
   final int boardSize;
-  final MaterialColor themeColor;
   final Function(String word) onWordFound;
   final Function() onFinish;
 
@@ -14,7 +13,6 @@ class FindTheWord extends StatefulWidget {
     super.key,
     required this.words,
     required this.boardSize,
-    required this.themeColor,
     required this.onWordFound,
     required this.onFinish,
   });
@@ -51,7 +49,7 @@ class _FindTheWordState extends State<FindTheWord> {
       while (!placed && attempts < 100) {
         int row = random.nextInt(widget.boardSize);
         int col = random.nextInt(widget.boardSize);
-        int direction = random.nextInt(4);
+        int direction = random.nextInt(2); // Apenas direções 0 (horizontal) e 1 (vertical)
 
         if (_canPlaceWord(word, row, col, direction)) {
           _placeWord(word, row, col, direction);
@@ -203,11 +201,11 @@ class _FindTheWordState extends State<FindTheWord> {
                 if (isSelected) {
                   // Cor da letra e fundo quando a letra está sendo selecionada (arrastada)
                   textColor = Colors.white;
-                  backgroundColor = widget.themeColor.shade400; // Um tom um pouco mais escuro de vermelho
+                  backgroundColor = Colors.red; // Seleção atual é vermelha
                 } else if (isFound) {
                   // Cor da letra e fundo quando a palavra já foi encontrada
                   textColor = Colors.white; // Letra branca
-                  backgroundColor = widget.themeColor; // Fundo vermelho (cor tema)
+                  backgroundColor = Colors.green; // Palavra encontrada fica verde
                 } else {
                   // Cor padrão das letras não selecionadas/encontradas
                   textColor = Colors.black87;

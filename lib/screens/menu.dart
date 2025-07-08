@@ -4,6 +4,7 @@ import 'package:auth_bloc/screens/epaludismo/epaludismo_screen.dart';
 import 'package:auth_bloc/screens/profile/profile.dart';
 import 'package:auth_bloc/screens/quiz/quiz_page.dart';
 import 'package:auth_bloc/screens/word_puzzle.dart/screens/home_screen.dart';
+import 'package:auth_bloc/screens/word_puzzle.dart/screens/welcome_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:auth_bloc/logic/cubit/auth_cubit.dart';
@@ -65,7 +66,7 @@ Widget buildAppDrawer(BuildContext context) {
             },
           ),
           ListTile(
-            leading: Icon(Icons.article_outlined,
+            leading: Icon(Icons.abc,
                 color: Colors.red), // Using an article icon for Blog
             title: Text('word puzzle', style: TextStyle(color: Colors.red)),
             onTap: () {
@@ -73,7 +74,7 @@ Widget buildAppDrawer(BuildContext context) {
                   context,
                   MaterialPageRoute(
                       builder: (context) =>
-                          const HomeScreen())); // Close the drawer
+                          const WelcomeScreen())); // Close the drawer
               // Handle Blog action
             },
           ),

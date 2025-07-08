@@ -1,5 +1,6 @@
 // lib/screens/game_screen.dart
 
+import 'dart:math';
 import 'package:auth_bloc/screens/word_puzzle.dart/models/word_level.dart';
 import 'package:auth_bloc/screens/word_puzzle.dart/screens/result_screen.dart';
 import 'package:auth_bloc/screens/word_puzzle.dart/widgets/find_the_word_game.dart';
@@ -25,7 +26,9 @@ class GameScreen extends StatelessWidget {
         largestWordLength = word.length;
       }
     }
-    final int effectiveBoardSize = largestWordLength > 10 ? largestWordLength + 2 : 12;
+    // Garante um tamanho mínimo de 10x10, ou maior se necessário para as palavras.
+    // Isso torna as células maiores em níveis mais fáceis.
+    final int effectiveBoardSize = max(10, largestWordLength + 2);
     print('Debugging GameScreen - Board Size: $effectiveBoardSize');
 
 
@@ -42,10 +45,7 @@ class GameScreen extends StatelessWidget {
           child: FindTheWord( // <--- AGORA ESTA CHAMADA SE REFERE À SUA PRÓPRIA CLASSE
             words: gameWords,
             boardSize: effectiveBoardSize,
-            themeColor: Colors.green,
-            // As cores foundTextColor e textColor são agora controladas dentro do seu FindTheWord
-            // então não as passe aqui, a menos que você as adicione aos seus próprios parâmetros.
-
+            
             onWordFound: (word) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
