@@ -27,7 +27,7 @@ class _MapZzzPageState extends State<MapZzzPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   MapController _mapController = MapController();
   String _riskLevelText =
-      'A calcular o nível de risco...'; // Initial loading text
+      'Calculando o nível de risco...'; // Initial loading text
   final FirebaseApi _firebaseApi = FirebaseApi();
 
   // Add a list to hold risk zones fetched from Firestore
@@ -139,16 +139,16 @@ class _MapZzzPageState extends State<MapZzzPage> {
       String initialRiskText;
       switch (highestRiskLevel) {
         case 1:
-          initialRiskText = 'Zona de baixo risco.';
+          initialRiskText = 'Você está numa zona de baixo risco.';
           break;
         case 2:
-          initialRiskText = 'Zona de médio risco.';
+          initialRiskText = 'Você está numa zona de médio risco.';
           break;
         case 3:
-          initialRiskText = 'Zona de alto risco.';
+          initialRiskText = 'Você está numa zona de alto risco.';
           break;
         default: // riskLevel is 0
-          initialRiskText = 'Zona segura.';
+          initialRiskText = 'Você está numa zona sem risco.';
           break;
       }
 
@@ -190,7 +190,8 @@ class _MapZzzPageState extends State<MapZzzPage> {
       print("Error recentering map: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Could not get current location to recenter.')),
+            content: Text(
+                'Não foi possível obter a localização atual para recentralizar.')),
       );
     }
   }
@@ -201,20 +202,20 @@ class _MapZzzPageState extends State<MapZzzPage> {
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      return Future.error('Location services are disabled.');
+      return Future.error('Os serviços de localização estão desativados.');
     }
 
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        return Future.error('Location permissions are denied');
+        return Future.error('As permissões de localização foram negadas.');
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
       return Future.error(
-          'Location permissions are permanently denied, we cannot request permissions.');
+          'As permissões de localização foram negadas permanentemente, não podemos solicitar permissões.');
     }
 
     return await Geolocator.getCurrentPosition(
@@ -436,7 +437,7 @@ class _MapZzzPageState extends State<MapZzzPage> {
                 GestureDetector(
                   onTap: () async {
                     // Define the search query
-                    const String searchQuery = 'Hospitais mais próximos';
+                    const String searchQuery = 'hospitals near me';
                     // Use a standard Google search URL format, ensuring proper encoding
                     final Uri googleMapsUri = Uri.https(
                       'maps.google.com',
@@ -468,7 +469,7 @@ class _MapZzzPageState extends State<MapZzzPage> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                   content: Text(
-                                      'Could not open the map search in browser.')), // Slightly more specific
+                                      'Não foi possível abrir a pesquisa de mapa no navegador.')), // Slightly more specific
                             );
                           }
                         } else {
@@ -482,7 +483,7 @@ class _MapZzzPageState extends State<MapZzzPage> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                                 content: Text(
-                                    'Could not find an app to open the map search.')), // More user-friendly message
+                                    'Não foi possível encontrar uma aplicação para abrir a pesquisa de mapa.')), // More user-friendly message
                           );
                         }
                       }
@@ -494,7 +495,7 @@ class _MapZzzPageState extends State<MapZzzPage> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                               content: Text(
-                                  'An error occurred while trying to open map search: ${e.toString()}')),
+                                  'Ocorreu um erro ao tentar abrir a pesquisa de mapa: ${e.toString()}')),
                         );
                       }
                     }
@@ -513,7 +514,8 @@ class _MapZzzPageState extends State<MapZzzPage> {
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content: Text('Could not launch phone.')),
+                            content:
+                                Text('Não foi possível iniciar a chamada.')),
                       );
                     }
                   },
@@ -676,8 +678,9 @@ class _ReportListState extends State<ReportList> {
     }
 
     if (_reports.isEmpty) {
-      return Center(
-          child: Text('Reportes não encontrados.')); //show no active reports
+      return const Center(
+          child: Text(
+              'Nenhuma reportagem ativa encontrada.')); //show no active reports
     }
 
     return ListView.builder(
@@ -701,29 +704,25 @@ class _ReportListState extends State<ReportList> {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(right: 8.0),
-                  child: CachedNetworkImage(
-                    imageUrl: report['imageUrl'],
-                    imageBuilder: (context, imageProvider) => Container(
-                      width: 50.0,
-                      height: 50.0,
-                      decoration: BoxDecoration(
-                        image: DecorationImage(
-                          image: imageProvider,
-                          fit: BoxFit.cover,
-                        ),
+                  child: SizedBox(
+                    // Use SizedBox to give CachedNetworkImage explicit dimensions
+                    width: 50.0,
+                    height: 50.0,
+                    child: CachedNetworkImage(
+                      // Changed to CachedNetworkImage
+                      imageUrl: report['imageUrl'],
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => const Center(
+                        // Placeholder for loading
+                        child: CircularProgressIndicator(),
+                      ),
+                      errorWidget: (context, url, error) => const Icon(
+                        // Widget to show on error
+                        Icons.error_outline,
+                        size:
+                            50, // Match the size of the SizedBox for consistent layout
                       ),
                     ),
-                    placeholder: (context, url) => SizedBox(
-                        width: 50,
-                        height: 50,
-                        child: Center(
-                            child:
-                                CircularProgressIndicator())), // Optional: Show a placeholder while loading
-                    errorWidget: (context, url, error) => SizedBox(
-                        width: 50,
-                        height: 50,
-                        child: Icon(Icons
-                            .error_outline)), // Show an error icon if it fails
                   ),
                 ),
                 Expanded(
@@ -732,10 +731,10 @@ class _ReportListState extends State<ReportList> {
                     children: [
                       Text(
                         report['title'],
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         report['location'],
                         style: TextStyle(fontSize: 14, color: Colors.grey[600]),
@@ -756,14 +755,6 @@ class _ReportListState extends State<ReportList> {
   }
 }
 
-// Import the package
-
-// Make sure ReportDetailPage is defined or imported elsewhere
-// import 'path/to/report_detail_page.dart'; // Example import
-
-// Import the report details page.  Make sure this import is correct.
-// import 'report_details.dart';  //<-- Correct the import if needed.
-
 class MapWidget extends StatefulWidget {
   final MapController mapController;
   final Function(String) onRiskLevelChanged;
@@ -781,7 +772,7 @@ class _MapWidgetState extends State<MapWidget> {
   bool _locationFetched = false;
   bool _initialLoadDone = false;
   List<CircleMarker> _currentHeatmapCircles = [];
-  String _riskLevelText = 'Zona segura.';
+  String _riskLevelText = 'Está numa zona sem risco.';
 
   @override
   void initState() {
@@ -827,20 +818,20 @@ class _MapWidgetState extends State<MapWidget> {
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      return Future.error('Location services are disabled.');
+      return Future.error('Os serviços de localização estão desativados.');
     }
 
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        return Future.error('Location permissions are denied');
+        return Future.error('As permissões de localização foram negadas.');
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
       return Future.error(
-          'Location permissions are permanently denied, we cannot request permissions.');
+          'As permissões de localização foram negadas permanentemente, não podemos solicitar permissões.');
     }
 
     return await Geolocator.getCurrentPosition(
@@ -1033,7 +1024,8 @@ class _MapWidgetState extends State<MapWidget> {
 
                   if (snapshot.hasError) {
                     print("Error fetching reports: ${snapshot.error}");
-                    return const Center(child: Text('Error loading reports'));
+                    return const Center(
+                        child: Text('Erro ao carregar reportagens'));
                   }
 
                   final reports = snapshot.data!.docs
@@ -1043,7 +1035,7 @@ class _MapWidgetState extends State<MapWidget> {
                   final heatmapCircles = <CircleMarker>[];
                   final processedReports = <Map<String, dynamic>>[];
                   final double heatmapRadiusMeters = heatmapRadiusKm * 1000;
-                  String currentRiskLevelText = 'Estas em zona sem risco .';
+                  String currentRiskLevelText = 'Está numa zona sem risco.';
 
                   for (final report in reports) {
                     final latitude = report['latitude'] as double?;
@@ -1167,15 +1159,15 @@ class _MapWidgetState extends State<MapWidget> {
                       if (distanceToCircleCenter <= circle.radius) {
                         if (circle.color.opacity == 0.3) {
                           currentRiskLevelText =
-                              'Zona de baixo risco.';
+                              'Está numa zona de baixo risco.';
                           break;
                         } else if (circle.color.opacity == 0.6) {
                           currentRiskLevelText =
-                              'Zona de médio risco.';
+                              'Está numa zona de médio risco.';
                           break;
                         } else if (circle.color.opacity == 0.9) {
                           currentRiskLevelText =
-                              'Zona de alto risco .';
+                              'Está numa zona de alto risco.';
                           break;
                         }
                       }
@@ -1218,11 +1210,12 @@ class _MapWidgetState extends State<MapWidget> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8.0, vertical: 4.0),
                                 child: const Text(
-                                  "Sua localização!",
+                                  "Você está aqui!",
                                   style: TextStyle(
                                     fontSize: 12.0,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.red,
+                                    color:
+                                        Colors.red, // Ensure this is not null
                                   ),
                                 ),
                               ),

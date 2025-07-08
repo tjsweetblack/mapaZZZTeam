@@ -3,6 +3,7 @@ import 'package:auth_bloc/screens/blog/blog_screen.dart';
 import 'package:auth_bloc/screens/epaludismo/epaludismo_screen.dart';
 import 'package:auth_bloc/screens/profile/profile.dart';
 import 'package:auth_bloc/screens/quiz/quiz_page.dart';
+import 'package:auth_bloc/screens/word_puzzle.dart/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:auth_bloc/logic/cubit/auth_cubit.dart';
@@ -66,6 +67,19 @@ Widget buildAppDrawer(BuildContext context) {
           ListTile(
             leading: Icon(Icons.article_outlined,
                 color: Colors.red), // Using an article icon for Blog
+            title: Text('word puzzle', style: TextStyle(color: Colors.red)),
+            onTap: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          const HomeScreen())); // Close the drawer
+              // Handle Blog action
+            },
+          ),
+          ListTile(
+            leading: Icon(Icons.article_outlined,
+                color: Colors.red), // Using an article icon for Blog
             title: Text('Blog', style: TextStyle(color: Colors.red)),
             onTap: () {
               Navigator.push(
@@ -79,7 +93,7 @@ Widget buildAppDrawer(BuildContext context) {
           ListTile(
             leading: Icon(Icons.help_outline,
                 color: Colors.red), // Using a help icon for EPaludismo
-            title: Text('EPaludismo?', style: TextStyle(color: Colors.red)),
+            title: Text('EPaludismo ?', style: TextStyle(color: Colors.red)),
             onTap: () {
               Navigator.pushReplacement(
                   context,
@@ -92,7 +106,7 @@ Widget buildAppDrawer(BuildContext context) {
           ListTile(
             leading: Icon(Icons.info_outline,
                 color: Colors.red), // Using a help icon for EPaludismo
-            title: Text('Sobre', style: TextStyle(color: Colors.red)),
+            title: Text('sobre', style: TextStyle(color: Colors.red)),
             onTap: () {
               Navigator.push(
                   context,
@@ -122,7 +136,7 @@ Widget buildAppDrawer(BuildContext context) {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Localização atual',
+                  'Estas em',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 8),
@@ -141,7 +155,7 @@ Widget buildAppDrawer(BuildContext context) {
             padding:
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Text(
-              '42 Luanda, ISPTEC', // Example location from image
+              '42 Luanda ISPTEC', // Example location from image
               style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
           ),

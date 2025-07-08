@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/services.dart'; // Import for Clipboard
+import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart'; // Import for CachedNetworkImage
 
 class PendingRewardsPage extends StatefulWidget {
   const PendingRewardsPage({Key? key}) : super(key: key);
@@ -37,7 +38,6 @@ class _PendingRewardsPageState extends State<PendingRewardsPage> {
         backgroundColor: Colors.white,
         elevation: 0,
       ),
-      // StreamBuilder to listen for real-time updates to the user's rewards list
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
             .collection('users')
@@ -53,21 +53,16 @@ class _PendingRewardsPageState extends State<PendingRewardsPage> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // Explicitly check if user data is a Map before accessing keys
           final dynamic rawUserData = userSnapshot.data?.data();
           Map<String, dynamic>? userData;
           if (rawUserData != null && rawUserData is Map<String, dynamic>) {
             userData = rawUserData;
           }
 
-          // Safely get the rewards list, ensuring it's treated as a List of Maps
           final List<dynamic> userRewardsDynamic = userData?['rewards'] ?? [];
-          final List<Map<String, dynamic>> userRewards = userRewardsDynamic
-              .whereType<
-                  Map<String, dynamic>>() // Filter out any non-map entries
-              .toList();
+          final List<Map<String, dynamic>> userRewards =
+              userRewardsDynamic.whereType<Map<String, dynamic>>().toList();
 
-          // Filter for pending rewards  <---  FILTER FOR PENDING REWARDS
           final List<Map<String, dynamic>> pendingRewards =
               userRewards.where((item) => item['status'] == 'pending').toList();
 
@@ -82,14 +77,12 @@ class _PendingRewardsPageState extends State<PendingRewardsPage> {
               final String? rewardId = pendingItem['rewardId'] as String?;
               final String? claimCode = pendingItem['claimCode'] as String?;
 
-              // Ensure we have a valid rewardId and claimCode
               if (rewardId == null || claimCode == null) {
                 print(
                     'Warning: Invalid pending item data (missing rewardId or claimCode): $pendingItem');
-                return const SizedBox.shrink(); // Skip invalid items
+                return const SizedBox.shrink();
               }
 
-              // Use a FutureBuilder to fetch reward details based on rewardId
               return FutureBuilder<DocumentSnapshot>(
                 future: FirebaseFirestore.instance
                     .collection('reward')
@@ -104,22 +97,16 @@ class _PendingRewardsPageState extends State<PendingRewardsPage> {
 
                   if (rewardSnapshot.connectionState ==
                       ConnectionState.waiting) {
-                    return const Center(
-                        child:
-                            CircularProgressIndicator()); // Show loading indicator for each reward item
+                    return const Center(child: CircularProgressIndicator());
                   }
 
                   if (!rewardSnapshot.hasData || !rewardSnapshot.data!.exists) {
-                    // Handle the case where the reward document doesn't exist
                     return const Center(
-                        child: Text(
-                            'Reward details not found.')); // Or some other appropriate message
+                        child: Text('Reward details not found.'));
                   }
 
-                  // Extract reward details from the snapshot
                   final Map<String, dynamic> rewardDetails =
-                      rewardSnapshot.data!.data()
-                          as Map<String, dynamic>; // Cast the data
+                      rewardSnapshot.data!.data() as Map<String, dynamic>;
 
                   final String title =
                       rewardDetails['title'] ?? 'Unknown Reward';
@@ -157,8 +144,7 @@ class _PendingRewardsPageState extends State<PendingRewardsPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10.0),
-        border: Border.all(
-            color: Colors.orange, width: 2.0), // Highlight pending items
+        border: Border.all(color: Colors.orange, width: 2.0),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -169,23 +155,21 @@ class _PendingRewardsPageState extends State<PendingRewardsPage> {
                 width: 60,
                 height: 60,
                 child: imageUrl.isNotEmpty
-                    ? Image.network(
-                        imageUrl,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(Icons.image_not_supported,
-                              size: 40, color: Colors.grey);
-                        },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                            ),
-                          );
-                        },
+                    ? CachedNetworkImage(
+                        // Changed from Image.network to CachedNetworkImage
+                        imageUrl: imageUrl,
+                        placeholder: (context, url) => const Center(
+                          // Placeholder for loading
+                          child: CircularProgressIndicator(),
+                        ),
+                        errorWidget: (context, url, error) => const Icon(
+                          // Widget to show on error
+                          Icons.image_not_supported,
+                          size: 40,
+                          color: Colors.grey,
+                        ),
+                        fit: BoxFit
+                            .cover, // Ensures the image fits the container
                       )
                     : const Icon(Icons.card_giftcard,
                         size: 40, color: Colors.grey),

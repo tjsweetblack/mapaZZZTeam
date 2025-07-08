@@ -92,7 +92,6 @@ class _MyAppState extends State<MyApp> {
   bool _isLoading = true;
   List<Map<String, dynamic>> _riskZones = [];
   Timer? _locationCheckTimer;
-  // Removed _checkIntervalSeconds as we are using a fixed one-hour interval
 
   Future<List<Map<String, dynamic>>> _fetchRiskZones() async {
     try {
@@ -336,7 +335,6 @@ class _MyAppState extends State<MyApp> {
 
   void _startLocationMonitoring() {
     // The initial check is now done in _initializeApp after fetching zones.
-    // Set up the periodic timer for hourly checks.
     _locationCheckTimer = Timer.periodic(const Duration(hours: 1), (timer) {
       _checkProximityAndNotify();
     });

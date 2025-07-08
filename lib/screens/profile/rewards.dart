@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'dart:math';
+import 'package:cached_network_image/cached_network_image.dart'; // Import cached_network_image
 import 'package:auth_bloc/screens/profile/reward_pending.dart'; // Import the PendingRewardsPage
 
 class RewardsPage extends StatelessWidget {
@@ -15,7 +16,7 @@ class RewardsPage extends StatelessWidget {
     final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
     final base =
         '${rewardId.substring(0, min(4, rewardId.length))}${userId.substring(0, min(4, userId.length))}${timestamp.substring(timestamp.length - min(4, timestamp.length))}$randomString';
-    return base.substring(0, min(12, base.length)).toUpperCase();
+    return base.substring(0, min(4, base.length)).toUpperCase();
   }
 
   Future<String?> _claimReward(String userId, String rewardId, int rewardPoints,
@@ -103,7 +104,7 @@ class RewardsPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               const Text(
-                'Este é o código que usarás para reivindicar o seu prêmio:',
+                'Este é o código que vais usar para reivindicar este prêmio:',
                 style: TextStyle(fontSize: 16.0),
               ),
               const SizedBox(height: 12.0),
@@ -355,26 +356,33 @@ class RewardsPage extends StatelessWidget {
               child: Container(
                 height: 80.0,
                 child: image.isNotEmpty
-                    ? Image.network(
-                        image,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(Icons.image_not_supported,
-                              size: 50, color: Colors.grey);
-                        },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                            ),
-                          );
-                        },
+                    ? CachedNetworkImage(
+                        imageUrl: image,
+                        imageBuilder: (context, imageProvider) => Image(
+                          image: imageProvider,
+                          fit: BoxFit.contain, // Control image scaling
+                          semanticLabel: title, // Accessibility for the image
+                        ),
+                        progressIndicatorBuilder:
+                            (context, url, downloadProgress) => Center(
+                          child: CircularProgressIndicator(
+                              value: downloadProgress.progress),
+                        ),
+                        errorWidget: (context, url, error) => const Icon(
+                          Icons.image_not_supported,
+                          size: 50,
+                          color: Colors.grey,
+                          semanticLabel:
+                              'Image not available', // Accessibility for error
+                        ),
                       )
-                    : const Icon(Icons.card_giftcard,
-                        size: 50, color: Colors.grey),
+                    : const Icon(
+                        Icons.card_giftcard,
+                        size: 50,
+                        color: Colors.grey,
+                        semanticLabel:
+                            'Reward placeholder', // Accessibility for placeholder
+                      ),
               ),
             ),
             const SizedBox(height: 16.0),
@@ -393,7 +401,7 @@ class RewardsPage extends StatelessWidget {
                   size: 20.0,
                 ),
                 const SizedBox(width: 4.0),
-                Text('Pontos necessarios: $points pontos',
+                Text('pontos necessario: $points pontos',
                     style: const TextStyle(color: Colors.black87)),
               ],
             ),

@@ -78,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             const SizedBox(height: 50), // Add top spacing
             const Text(
-              "Bem-vindo de volta!",
+              "Bem vindo de volta !",
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -86,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              "Faça o login para continuar explorando",
+              "Vamos fazer login para continuar explorando",
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey,
@@ -201,7 +201,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     context.pushNamed(Routes.signupScreen);
                   },
                   child: const Text(
-                    "Inscreva-te aqui.",
+                    " Inscreva-se aqui.",
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.blue,

@@ -115,7 +115,7 @@ class _LocatorScreenState extends State<LocatorScreen> {
               CircularProgressIndicator(),
             SizedBox(height: 20),
             Text(
-              'Apontando para a direção da zona reportada',
+              'Apontando para a direção da reportagem',
               style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
           ],

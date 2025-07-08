@@ -43,7 +43,7 @@ class _MalariaResultScreenState extends State<MalariaResultScreen> {
     }
 
     final model = GenerativeModel(
-      model: 'gemini-2.5-pro-exp-03-25',
+      model: 'gemma-3n-e4b-it',
       apiKey: apiKey,
       generationConfig: GenerationConfig(
         temperature: 1,
@@ -120,7 +120,7 @@ class _MalariaResultScreenState extends State<MalariaResultScreen> {
     return Scaffold(
       appBar: AppBar(
         title:
-            const Text('EPaludismo?', style: TextStyle(color: Colors.black)),
+            const Text('EPaludismo ?', style: TextStyle(color: Colors.black)),
         backgroundColor: const Color.fromARGB(255, 255, 255, 255),
         iconTheme: const IconThemeData(color: Colors.black),
         leading: IconButton(
@@ -175,7 +175,7 @@ class _MalariaResultScreenState extends State<MalariaResultScreen> {
                       ? 'Aguarde enquanto analisamos os sintomas...'
                       : errorMessage.isNotEmpty
                           ? errorMessage
-                          : 'O Paciente tem $probabilityResult chance de ter paludismo.',
+                          : 'o Paciente tem $probabilityResult chance de ter paludismo .',
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 18,
@@ -201,7 +201,7 @@ class _MalariaResultScreenState extends State<MalariaResultScreen> {
               const SizedBox(height: 10),
               const Center(
                 child: Text(
-                  '" Não é um substituto para aconselhamento médico profissional ou tratamento.',
+                  '" Não é um substituto para aconselhamento médico profissional ou tratamento .',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
@@ -230,7 +230,7 @@ class _MalariaResultScreenState extends State<MalariaResultScreen> {
                   ),
                 ),
                 child: const Text(
-                  'Contacto de emergencia',
+                  'Contancto de emergencia',
                   style: TextStyle(color: Colors.white, fontSize: 16),
                 ),
               ),
@@ -247,7 +247,7 @@ class _MalariaResultScreenState extends State<MalariaResultScreen> {
                   ),
                 ),
                 child: const Text(
-                  'Ver hospitais mais proximos',
+                  'ver hospital mais proximo',
                   style: TextStyle(color: Colors.white, fontSize: 16),
                 ),
               ),
@@ -264,7 +264,7 @@ class _MalariaResultScreenState extends State<MalariaResultScreen> {
                   ),
                 ),
                 child: const Text(
-                  'Voltar ao inicio.',
+                  'voltar ao inicio .',
                   style: TextStyle(color: Colors.white, fontSize: 16),
                 ),
               ),

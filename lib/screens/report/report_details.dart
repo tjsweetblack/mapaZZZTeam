@@ -63,15 +63,15 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
       if (userDoc.exists) {
         final userData = userDoc.data();
         setState(() {
-          _userName =
-              userData?['name'] ?? 'Unknown User'; // Get the user's name
+          _userName = userData?['name'] ??
+              'Usuário Desconhecido'; // Get the user's name
           _userRank = userData?['rank'] ??
               'Novinho'; // Get the user's rank, default to 'Novinho' if null
           _isLoadingUser = false;
         });
       } else {
         setState(() {
-          _userName = 'Unknown User';
+          _userName = 'Usuário Desconhecido';
           _userRank = 'Novinho'; // Default rank if user not found
           _isLoadingUser = false;
         });
@@ -79,7 +79,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
     } catch (e) {
       print("Error fetching user name/rank: $e");
       setState(() {
-        _userName = 'Error Loading User';
+        _userName = 'Erro ao Carregar Usuário';
         _userRank = 'Novinho'; // Default rank on error
         _isLoadingUser = false;
       });
@@ -246,8 +246,8 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          await _showErrorDialog('GPS desativado',
-              'Por favor, habilite a permissão da localização.');
+          await _showErrorDialog('Permissão de localização negada',
+              'Por favor, habilite a permissão de localização para confirmar a reportagem.');
           setState(() =>
               _isLoadingConfirmationStatus = false); // Stop loading on error
           return;
@@ -321,7 +321,6 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                 // If already confirmed, throw an exception to roll back the transaction
                 throw Exception("User has already confirmed this report.");
               }
-
               // Update the report's NoConfirmation count by incrementing
               int currentConfirmations = (reportSnapshot.data()
                       as Map<String, dynamic>)?['NoConfirmation'] ??
@@ -360,8 +359,8 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                   'A reportagem que você tentou confirmar não existe mais.');
             } else {
               print("Error during confirmation transaction: $e");
-              await _showErrorDialog(
-                  'Erro inesperado ao confirmar', e.toString());
+              await _showErrorDialog('Erro inesperado ao confirmar',
+                  'Ocorreu um erro inesperado. Tente novamente.');
             }
           }
         } else {
@@ -371,7 +370,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
       } else {
         // User is too far from the report location
         await _showErrorDialog('Localização distante',
-            'Chegue mais próximo do local reportado, distância mínima de 5 metros.');
+            'Você não se encontra no local da reportagem. Aproxime-se, pelo menos 5 metros de distância.');
       }
     } catch (locationError) {
       // Handle errors related to getting the user's location
@@ -379,8 +378,9 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
       await _showErrorDialog(
           'Erro ao obter localização', locationError.toString());
     } finally {
-      setState(() => _isLoadingConfirmationStatus =
-          false); // Hide loading indicator after completion (success or error)
+      if (mounted)
+        setState(() => _isLoadingConfirmationStatus =
+            false); // Hide loading indicator after completion (success or error)
     }
   }
 
@@ -388,8 +388,8 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
   Future<void> _reportAsResolved() async {
     // Prevent marking as resolved if the user has already done so
     if (_hasUserResolved) {
-      await _showErrorDialog('Dado como resolvido',
-          'Você já deu este reporte como resolvido.');
+      await _showErrorDialog('Já reportado como resolvido',
+          'Você já reportou esta reportagem como resolvida.');
       return;
     }
 
@@ -408,7 +408,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
           await _showErrorDialog('Permissão de localização negada',
-              'Por favor, habilite a permissão de localização para alterar o estado do reporte.');
+              'Por favor, habilite a permissão de localização para reportar como resolvido.');
           if (mounted) setState(() => _isLoadingResolvedStatus = false);
           return;
         }
@@ -550,7 +550,8 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
             } else {
               print("Error during resolved transaction: $e");
               await _showErrorDialog(
-                  'Erro inesperado ao reportar como resolvido', e.toString());
+                  'Erro inesperado ao reportar como resolvido',
+                  'Ocorreu um erro inesperado. Tente novamente.');
             }
           }
         } else {
@@ -560,7 +561,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
       } else {
         // User is too far from the report location
         await _showErrorDialog('Localização distante',
-            'Nao se encontras no local da reportagem. Chegue mais proximo, 5 metros pelo menos de distancia para reportar como resolvido.');
+            'Você não se encontra no local da reportagem. Aproxime-se, pelo menos 5 metros de distância para reportar como resolvido.');
       }
     } catch (locationError) {
       // Handle errors related to getting the user's location
@@ -654,7 +655,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
         return AlertDialog(
           title: const Text('Reportagem Resolvida'),
           content: const Text(
-              'Esta reportagem atingiu o número necessário de confirmações de resolução. Ela foi dadacomo resolvida e não aparecerá na lista de reportagens.'),
+              'Esta reportagem atingiu o número necessário de confirmações de resolução. Ela foi marcada como resolvida e não aparecerá mais no mapa ou na lista.'),
           actions: <Widget>[
             TextButton(
               child: const Text('OK'),
@@ -698,12 +699,12 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
 
           // Handle errors during data fetching
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(child: Text('Erro: ${snapshot.error}'));
           }
 
           // Handle case where the document doesn't exist or has no data
           if (!snapshot.hasData || !snapshot.data!.exists) {
-            return Center(child: Text('Reportagem não encontrada.'));
+            return const Center(child: Text('Reportagem não encontrada.'));
           }
 
           // --- Data is available, extract and display ---
@@ -741,14 +742,20 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                         height: 250,
                         fit: BoxFit.cover,
                         placeholder: (context, url) => Container(
+                          width: double.infinity,
                           height: 250,
                           color: Colors.grey[300],
-                          child: Center(child: CircularProgressIndicator()),
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                                color: Colors.black54),
+                          ),
                         ),
                         errorWidget: (context, url, error) => Container(
+                          width: double.infinity,
                           height: 250,
                           color: Colors.grey[300],
-                          child: Center(child: Icon(Icons.image_not_supported)),
+                          child: const Icon(Icons.broken_image,
+                              size: 50, color: Colors.grey),
                         ),
                       ),
                     ),
@@ -773,7 +780,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                    children: <Widget>[
                       Text(
                         widget.report['title'] ?? 'No Title', // Use fallback
                         style: TextStyle(
@@ -787,7 +794,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                           Expanded(
                             child: Text(
                               widget.report['location'] ??
-                                  'No Location', // Use fallback
+                                  'Localização Desconhecida', // Use fallback
                               softWrap: true,
                             ),
                           ),
@@ -816,7 +823,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                       content: Text(
-                                          'Could not open hospitals search in map.')),
+                                          'Não foi possível abrir a pesquisa de hospitais no mapa.')),
                                 );
                               });
                             } else {
@@ -824,7 +831,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                     content: Text(
-                                        'Could not launch hospitals search URL.')),
+                                        'Não foi possível abrir o URL de pesquisa de hospitais.')),
                               );
                             }
                           } else {
@@ -886,9 +893,10 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                                 ),
                           SizedBox(width: 13),
                           _isLoadingUser
-                              ? Text('Loading...') // Show loading text for name
+                              ? const Text(
+                                  'Carregando...') // Show loading text for name
                               : Text(_userName ??
-                                  'Unknown User'), // Display fetched name
+                                  'Usuário Desconhecido'), // Display fetched name
                         ],
                       ),
                       SizedBox(height: 8),
@@ -915,7 +923,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           SizedBox(width: 8),
-                          Text(' Confirmações',
+                          Text('Número de confirmações',
                               style: TextStyle(color: Colors.grey)),
                         ],
                       ),
@@ -930,7 +938,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           SizedBox(width: 8),
-                          Text(' Resolvido',
+                          Text('Número de confirmações de resolvidos',
                               style: TextStyle(color: Colors.green)),
                         ],
                       ),
@@ -999,7 +1007,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                       // Use description from latest data, fall back to initial or default
                       Text(latestReportData['description'] ??
                           widget.report['description'] ??
-                          'No description provided.'),
+                          'Nenhuma descrição fornecida.'),
                       SizedBox(height: 16),
                       Text('Solução criada por IA:',
                           style: TextStyle(
@@ -1008,7 +1016,7 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                       // Use solution from latest data, fall back to initial or default
                       Text(latestReportData['solutionAi'] ??
                           widget.report['solutionAi'] ??
-                          'No solution provided.'),
+                          'Nenhuma solução fornecida.'),
                       SizedBox(height: 24),
                       // Report as Resolved Button
                       SizedBox(
@@ -1069,7 +1077,7 @@ class SuccessScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('MapZZZ'),
+        title: const Text('MapZzz'),
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black),
         titleTextStyle:
@@ -1090,7 +1098,7 @@ class SuccessScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             const Text(
-              'Concluído .',
+              'Concluído.',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -1108,9 +1116,9 @@ class SuccessScreen extends StatelessWidget {
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
+              children: const <Widget>[
                 Text(
-                  'Ganhaste',
+                  'Você ganhou',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 SizedBox(width: 8),
@@ -1182,7 +1190,7 @@ class SuccessScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(25.0),
                   ),
                 ),
-                child: const Text('Voltar ao inicio'),
+                child: const Text('Voltar ao início'),
               ),
             ),
           ],
@@ -1203,7 +1211,7 @@ class SuccessScreen2 extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('MapZZZ'),
+        title: const Text('MapZzz'),
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black),
         titleTextStyle:
@@ -1224,7 +1232,7 @@ class SuccessScreen2 extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             const Text(
-              'Concluido .',
+              'Concluído.',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -1242,9 +1250,9 @@ class SuccessScreen2 extends StatelessWidget {
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
+              children: const <Widget>[
                 Text(
-                  'Ganhaste',
+                  'Você ganhou',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 SizedBox(width: 8),
@@ -1316,7 +1324,7 @@ class SuccessScreen2 extends StatelessWidget {
                     borderRadius: BorderRadius.circular(25.0),
                   ),
                 ),
-                child: const Text('Voltar ao inicio'),
+                child: const Text('Voltar ao início'),
               ),
             ),
           ],
@@ -1350,7 +1358,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('localização da reportagem'),
+        title: const Text('Localização da Reportagem'),
       ),
       body: WebViewWidget(controller: controller),
     );

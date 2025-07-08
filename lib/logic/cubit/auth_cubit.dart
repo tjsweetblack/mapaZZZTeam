@@ -5,7 +5,6 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // For Firestore
 // For Authentication
 
-
 part 'auth_state.dart';
 
 class AuthCubit extends Cubit<AuthState> {
@@ -15,7 +14,7 @@ class AuthCubit extends Cubit<AuthState> {
   AuthCubit() : super(AuthInitial());
 
   User? get currentUser => _auth.currentUser;
-  
+
   Future<void> createAccountAndLinkItWithGoogleAccount(
       String email,
       String password,
@@ -32,8 +31,15 @@ class AuthCubit extends Cubit<AuthState> {
       await _auth.currentUser!.updateDisplayName(googleUser.displayName);
       await _auth.currentUser!.updatePhotoURL(googleUser.photoUrl);
       emit(UserSingupAndLinkedWithGoogle());
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'email-already-in-use') {
+        emit(AuthError('Este e-mail já está associado a uma conta.'));
+      } else {
+        emit(AuthError('Ocorreu um erro ao criar sua conta.'));
+      }
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(
+          AuthError('Ocorreu um erro inesperado. Por favor, tente novamente.'));
     }
   }
 
@@ -42,8 +48,13 @@ class AuthCubit extends Cubit<AuthState> {
     try {
       await _auth.sendPasswordResetEmail(email: email);
       emit(ResetPasswordSent());
+    } on FirebaseAuthException catch (_) {
+      // Avoid revealing if an email is registered or not.
+      emit(AuthError(
+          'Não foi possível enviar o e-mail de redefinição de senha. Por favor, verifique o endereço de e-mail.'));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(
+          AuthError('Ocorreu um erro inesperado. Por favor, tente novamente.'));
     }
   }
 
@@ -56,18 +67,28 @@ class AuthCubit extends Cubit<AuthState> {
       );
       if (userCredential.user!.emailVerified) {
         // Update Firestore lastLogin field
-        await _firestore.collection('users').doc(userCredential.user!.uid).update({
+        await _firestore
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .update({
           'lastLogin': FieldValue.serverTimestamp(),
         });
 
         emit(UserSignIn());
       } else {
         await _auth.signOut();
-        emit(AuthError('Email not verified. Please check your email.'));
+        emit(AuthError(
+            'E-mail não verificado. Por favor, verifique seu e-mail.'));
         emit(UserNotVerified());
       }
+    } on FirebaseAuthException catch (_) {
+      // Handle specific Firebase auth errors with a user-friendly message for invalid credentials.
+      // Common codes: 'user-not-found', 'wrong-password', 'invalid-email', 'invalid-credential'
+      emit(AuthError(
+          'Credenciais de login inválidas. Por favor, tente novamente.'));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(
+          AuthError('Ocorreu um erro inesperado. Por favor, tente novamente.'));
     }
   }
 
@@ -76,7 +97,7 @@ class AuthCubit extends Cubit<AuthState> {
     try {
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
       if (googleUser == null) {
-        emit(AuthError('Google Sign In Failed'));
+        emit(AuthError('Falha ao entrar com o Google.'));
         return;
       }
       // Obtain the auth details from the request
@@ -97,8 +118,13 @@ class AuthCubit extends Cubit<AuthState> {
       } else {
         emit(UserSignIn());
       }
+    } on FirebaseAuthException catch (_) {
+      // e.g., 'account-exists-with-different-credential'
+      emit(AuthError(
+          'Falha ao entrar com o Google. Uma conta já pode existir com um método de login diferente.'));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError(
+          'Ocorreu um erro inesperado durante o login com o Google.'));
     }
   }
 
@@ -112,7 +138,8 @@ class AuthCubit extends Cubit<AuthState> {
       String name, String email, String password, String phoneNumber) async {
     emit(AuthLoading());
     try {
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+      UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -145,43 +172,59 @@ class AuthCubit extends Cubit<AuthState> {
         });
       }
       emit(UserSingupButNotVerified());
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'weak-password') {
+        emit(AuthError('A senha fornecida é muito fraca.'));
+      } else if (e.code == 'email-already-in-use') {
+        emit(AuthError('Já existe uma conta para esse e-mail.'));
+      } else {
+        emit(AuthError(
+            'E-mail ou senha inválidos. Por favor, tente novamente.'));
+      }
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(
+          AuthError('Ocorreu um erro inesperado. Por favor, tente novamente.'));
     }
   }
-   // Initiates phone number sign-up
+
+  // Initiates phone number sign-up
   Future<void> signUpWithPhoneNumber(String phoneNumber) async {
-  try {
-    emit(AuthLoading());
+    try {
+      emit(AuthLoading());
 
-    await _auth.verifyPhoneNumber(
-      phoneNumber: phoneNumber,
-      verificationCompleted: (PhoneAuthCredential credential) async {
-        await _auth.signInWithCredential(credential);
-        emit(UserSignIn());
-      },
-      verificationFailed: (FirebaseAuthException e) {
-        emit(AuthError(e.message ?? "Verification failed"));
-      },
-      codeSent: (String verificationId, int? resendToken) async {
-        // Emit the PhoneVerificationSent state with the verificationId
-        emit(PhoneVerificationSent(verificationId));
-      },
-      codeAutoRetrievalTimeout: (String verificationId) {
-        emit(AuthError("Code retrieval timeout"));
-      },
-    );
-  } catch (e) {
-    emit(AuthError("Error during phone sign-up: ${e.toString()}"));
+      await _auth.verifyPhoneNumber(
+        phoneNumber: phoneNumber,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          await _auth.signInWithCredential(credential);
+          emit(UserSignIn());
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          if (e.code == 'invalid-phone-number') {
+            emit(AuthError("O número de telefone fornecido não é válido."));
+          } else {
+            emit(AuthError(
+                "Falha ao verificar o número de telefone. Por favor, tente novamente mais tarde."));
+          }
+        },
+        codeSent: (String verificationId, int? resendToken) async {
+          // Emit the PhoneVerificationSent state with the verificationId
+          emit(PhoneVerificationSent(verificationId));
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          emit(AuthError("Tempo de recuperação do código esgotado."));
+        },
+      );
+    } catch (e) {
+      emit(
+          AuthError("Ocorreu um erro inesperado. Por favor, tente novamente."));
+    }
   }
-}
-
 
   // Verifies the OTP sent to the phone number
   Future<void> verifyPhoneOTP(String verificationId, String otp) async {
     try {
       emit(AuthLoading());
-      
+
       // Create a PhoneAuthCredential with the verification ID and OTP
       PhoneAuthCredential credential = PhoneAuthProvider.credential(
         verificationId: verificationId,
@@ -191,8 +234,16 @@ class AuthCubit extends Cubit<AuthState> {
       // Sign in using the credential
       await _auth.signInWithCredential(credential);
       emit(UserSignIn());
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'invalid-verification-code') {
+        emit(AuthError("O código OTP que você digitou é inválido."));
+      } else {
+        emit(
+            AuthError("Falha ao verificar o OTP. Por favor, tente novamente."));
+      }
     } catch (e) {
-      emit(AuthError("Verification failed: ${e.toString()}"));
+      emit(
+          AuthError("Ocorreu um erro inesperado. Por favor, tente novamente."));
     }
   }
 }
