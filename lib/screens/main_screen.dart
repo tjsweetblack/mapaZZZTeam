@@ -985,6 +985,7 @@ class _MapWidgetState extends State<MapWidget> {
   Widget build(BuildContext context) {
     return _locationFetched && _currentLocation != null
         ? FlutterMap(
+            key: UniqueKey(),
             mapController: widget.mapController,
             options: MapOptions(
               initialCenter: _currentLocation!,
@@ -1002,6 +1003,7 @@ class _MapWidgetState extends State<MapWidget> {
                     "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                 subdomains: const ['a', 'b', 'c'],
                 tileBuilder: _greyScaleTileBuilder,
+                userAgentPackageName: 'com.example.auth_bloc',
               ),
               // Use a non-moving MarkerLayer.
 
