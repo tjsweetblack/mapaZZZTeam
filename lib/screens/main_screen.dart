@@ -985,7 +985,6 @@ class _MapWidgetState extends State<MapWidget> {
   Widget build(BuildContext context) {
     return _locationFetched && _currentLocation != null
         ? FlutterMap(
-            key: UniqueKey(),
             mapController: widget.mapController,
             options: MapOptions(
               initialCenter: _currentLocation!,
