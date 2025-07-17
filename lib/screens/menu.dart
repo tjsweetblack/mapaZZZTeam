@@ -1,3 +1,5 @@
+import 'package:auth_bloc/cubits/language_cubit.dart';
+import 'package:auth_bloc/l10n/app_localizations.dart';
 import 'package:auth_bloc/screens/about/about.dart';
 import 'package:auth_bloc/screens/blog/blog_screen.dart';
 import 'package:auth_bloc/screens/epaludismo/epaludismo_screen.dart';
@@ -117,6 +119,16 @@ Widget buildAppDrawer(BuildContext context) {
             },
           ),
           ListTile(
+            leading: Icon(Icons.language, color: Colors.red),
+            title: Text(AppLocalizations.of(context)!.changeLanguage,
+                style: TextStyle(color: Colors.red)),
+            onTap: () {
+              // Close the drawer before showing the dialog
+              Navigator.pop(context);
+              _showLanguageDialog(context);
+            },
+          ),
+          ListTile(
             leading: Icon(Icons.logout,
                 color: Colors.red), // Match the icon from the image
             title: Text('Logout', style: TextStyle(color: Colors.red)),
@@ -188,4 +200,31 @@ Widget buildAppDrawer(BuildContext context) {
       ),
     ),
   );
+}
+
+void _showLanguageDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext dialogContext) {
+      return AlertDialog(
+        title: Text(AppLocalizations.of(context)!.selectLanguage),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+                title: Text(AppLocalizations.of(context)!.english),
+                onTap: () => _changeLanguage(dialogContext, 'en')),
+            ListTile(
+                title: Text(AppLocalizations.of(context)!.spanish),
+                onTap: () => _changeLanguage(dialogContext, 'es')),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+void _changeLanguage(BuildContext context, String languageCode) {
+  context.read<LanguageCubit>().changeLocale(Locale(languageCode));
+  Navigator.of(context).pop(); // Close the dialog
 }

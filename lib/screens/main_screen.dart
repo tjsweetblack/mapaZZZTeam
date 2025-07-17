@@ -1,4 +1,5 @@
 import 'package:auth_bloc/api/firebase_api.dart';
+import 'package:auth_bloc/l10n/app_localizations.dart';
 import 'package:auth_bloc/logic/cubit/auth_cubit.dart';
 import 'package:auth_bloc/routing/routes.dart';
 import 'package:auth_bloc/screens/map_info/map_info.dart';
@@ -255,7 +256,7 @@ class _MapZzzPageState extends State<MapZzzPage> {
         title: Row(
           children: [
             Text(
-              'MapaZZZ',
+              AppLocalizations.of(context)!.appTitle,
               style:
                   TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
             ),

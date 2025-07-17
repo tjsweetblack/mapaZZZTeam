@@ -1,0 +1,8 @@
+{
+    "@@locale": "en",
+    "appTitle": "MyApp",
+    "changeLanguage": "Change Language",
+    "selectLanguage": "Select Language",
+    "english": "English",
+    "spanish": "Spanish"
+}

@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:auth_bloc/api/firebase_api.dart';
+import 'package:auth_bloc/cubits/language_cubit.dart';
 import 'package:auth_bloc/firebase_options.dart';
+import 'package:auth_bloc/l10n/app_localizations.dart';
 import 'package:auth_bloc/logic/cubit/auth_cubit.dart';
 import 'package:auth_bloc/screens/splash_screen/splash.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Import cloud_firestore
@@ -21,6 +23,9 @@ import 'routing/routes.dart';
 import 'theming/colors.dart';
 import 'package:flutter_inappwebview/src/in_app_webview/in_app_webview.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_localization/flutter_localization.dart';
+
+
 
 late String initialRoute;
 
@@ -353,6 +358,7 @@ class _MyAppState extends State<MyApp> {
         BlocProvider<AuthCubit>(
           create: (context) => AuthCubit(),
         ),
+        BlocProvider<LanguageCubit>(create: (_) => LanguageCubit()),
       ],
       child: ScreenUtilInit(
         designSize: const Size(360, 690),
@@ -360,23 +366,32 @@ class _MyAppState extends State<MyApp> {
         splitScreenMode: true,
         builder: (_, child) {
           return _isLoading
-              ? const SplashScreen()
-              : MaterialApp(
-                  locale: DevicePreview.locale(context),
-                  builder: DevicePreview.appBuilder,
-                  title: 'Login & Signup App',
-                  theme: ThemeData(
-                    useMaterial3: true,
-                    textSelectionTheme: const TextSelectionThemeData(
-                      cursorColor: ColorsManager.mainBlue,
-                      selectionColor: Color.fromARGB(188, 36, 124, 255),
-                      selectionHandleColor: ColorsManager.mainBlue,
+            ? const SplashScreen()
+            : BlocBuilder<LanguageCubit, LanguageState>(
+                builder: (context, state) {
+                  return MaterialApp(
+                    locale: state.locale,
+                    localizationsDelegates: AppLocalizations.localizationsDelegates,
+                    supportedLocales: AppLocalizations.supportedLocales,
+                    localeResolutionCallback: (locale, supportedLocales) {
+                      return supportedLocales.contains(locale) ? locale : const Locale('en');
+                    },
+                    builder: DevicePreview.appBuilder,
+                    onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
+                    theme: ThemeData(
+                      useMaterial3: true,
+                      textSelectionTheme: const TextSelectionThemeData(
+                        cursorColor: ColorsManager.mainBlue,
+                        selectionColor: Color.fromARGB(188, 36, 124, 255),
+                        selectionHandleColor: ColorsManager.mainBlue,
+                      ),
                     ),
-                  ),
-                  onGenerateRoute: widget.router.generateRoute,
-                  debugShowCheckedModeBanner: false,
-                  initialRoute: initialRoute,
-                );
+                    onGenerateRoute: widget.router.generateRoute,
+                    debugShowCheckedModeBanner: false,
+                    initialRoute: initialRoute,
+                  );
+                },
+              );
         },
       ),
     );
