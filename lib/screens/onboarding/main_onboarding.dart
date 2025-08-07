@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:auth_bloc/routing/routes.dart';
 
+
+// mainOnboarding widget
 class mainOnboarding extends StatefulWidget {
   const mainOnboarding({super.key});
 
@@ -42,21 +44,29 @@ class _mainOnboardingState extends State<mainOnboarding> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(
-          255, 255, 252, 252), // Set background color to black
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+        backgroundColor: Colors.white,
         elevation: 0,
-        actions: [
-          if (_currentPage < 2) // Show "Skip" only on first two pages
-            TextButton(
-              onPressed: _navigateToMainApp,
-              child: const Text('Skip',
-                  style: TextStyle(
-                      color:
-                          Color.fromARGB(255, 58, 56, 56))), // White Skip text
+        toolbarHeight: 80, // Adjust height for better spacing
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Image.asset(
+              'assets/images/logo/logo4.png',
+              height: 40, // Adjust logo height
             ),
-        ],
+            const SizedBox(width: 8),
+            const Text(
+              'Mapazzz',
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
       ),
       body: Stack(
         alignment: Alignment.bottomCenter,
@@ -87,29 +97,34 @@ class _mainOnboardingState extends State<mainOnboarding> {
             left: 0,
             right: 0,
             child: Column(
-              // Wrap buttons in a Column
               children: [
                 if (_currentPage < 2) // Show "Next" button on pages 1 and 2
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 40.0),
-                    child: ElevatedButton(
-                      onPressed: _nextPage,
-                      style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 50),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          textStyle: const TextStyle(fontSize: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(110.0),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 20.0),
+                      child: SizedBox(
+                        width: 50, // Fixed width for the rounded square button
+                        height: 50, // Fixed height for the rounded square button
+                        child: ElevatedButton(
+                          onPressed: _nextPage,
+                          style: ElevatedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15.0),
+                            ),
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.zero, // Remove default padding
                           ),
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white),
-                      child: const Text("next",
-                          style: TextStyle(
-                              color: Color.fromARGB(255, 255, 255, 255))),
+                          child: const Icon(
+                            Icons.arrow_forward_rounded, // Use a forward arrow icon
+                            size: 30,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                if (_currentPage ==
-                    2) // Show "Get Started" button only on the last page
+                if (_currentPage == 2) // Show "Entrar" button on the last page
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 40.0),
                     child: ElevatedButton(
@@ -123,8 +138,17 @@ class _mainOnboardingState extends State<mainOnboarding> {
                           ),
                           backgroundColor: Colors.red,
                           foregroundColor: Colors.white),
-                      child: const Text("Começar Agora",
-                          style: TextStyle(color: Colors.white)),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text("Entrar", style: TextStyle(color: Colors.white)),
+                          SizedBox(width: 8),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            color: Colors.white,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
               ],
@@ -140,12 +164,11 @@ class _mainOnboardingState extends State<mainOnboarding> {
       duration: const Duration(milliseconds: 150),
       margin: const EdgeInsets.symmetric(horizontal: 8.0),
       height: 8.0,
-      width: 8.0, // Make width the same as height for a circle
+      width: 25.0, // Wider for the active indicator
       decoration: BoxDecoration(
-        color: isActive
-            ? Colors.red
-            : Colors.grey[700], // Slightly darker grey for inactive
-        shape: BoxShape.circle, // Use the circle shape
+        color: isActive ? Colors.red : Colors.grey.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(4.0), // Rounded corners for squares
+        shape: BoxShape.rectangle, // Use the rectangle shape for squares
       ),
     );
   }

@@ -576,7 +576,7 @@ class _MapZzzPageState extends State<MapZzzPage> {
                     ),
                     SizedBox(height: 16),
                     Text(
-                      'Reportagens',
+                      "reportagens",
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
