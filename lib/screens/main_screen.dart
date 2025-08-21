@@ -256,7 +256,7 @@ class _MapZzzPageState extends State<MapZzzPage> {
         title: Row(
           children: [
             Text(
-              'MapaZZZ',
+              'MapaZzz',
               style:
                   TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
             ),
