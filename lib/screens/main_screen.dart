@@ -256,7 +256,7 @@ class _MapZzzPageState extends State<MapZzzPage> {
         title: Row(
           children: [
             Text(
-              AppLocalizations.of(context)!.appTitle,
+              'MapaZZZ',
               style:
                   TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
             ),
@@ -576,7 +576,7 @@ class _MapZzzPageState extends State<MapZzzPage> {
                     ),
                     SizedBox(height: 16),
                     Text(
-                      "reportagens",
+                      'Reportagens',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,

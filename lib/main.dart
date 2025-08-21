@@ -23,6 +23,9 @@ import 'routing/routes.dart';
 import 'theming/colors.dart';
 import 'package:flutter_inappwebview/src/in_app_webview/in_app_webview.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_localization/flutter_localization.dart';
+
+
 
 late String initialRoute;
 
@@ -381,12 +384,7 @@ class _MyAppState extends State<MyApp> {
                         cursorColor: ColorsManager.mainBlue,
                         selectionColor: Color.fromARGB(188, 36, 124, 255),
                         selectionHandleColor: ColorsManager.mainBlue,
-                        
                       ),
-                      fontFamily: 'Poppins',
-                      // You can customize other theme properties here as well.
-                      primarySwatch: Colors.blue,
-                      visualDensity: VisualDensity.adaptivePlatformDensity,
                     ),
                     onGenerateRoute: widget.router.generateRoute,
                     debugShowCheckedModeBanner: false,

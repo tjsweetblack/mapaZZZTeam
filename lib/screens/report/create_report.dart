@@ -29,19 +29,20 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
   late Future<void> _initializeCameraControllerFuture;
   List<CameraDescription> _cameras = [];
   bool _isAnalyzing = false; // Track image analysis state
+  bool _isLandscape = false; // Track orientation
+  bool _showOrientationDialog = true;
 
   @override
   void initState() {
     super.initState();
     _setupCamera();
     WidgetsBinding.instance.addObserver(this);
-    _lockOrientation();
+    _checkOrientation();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Use .value.isInitialized to check if the controller is initialized.
-    if (!_cameraController.value.isInitialized) {
+    if (_cameraController == null) {
       return;
     }
     if (state == AppLifecycleState.inactive ||
@@ -86,20 +87,21 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
   @override
   void dispose() {
     _cameraController.dispose();
-    _unlockOrientation(); // Reset orientation when leaving the screen
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  Future<void> _lockOrientation() async {
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeRight,
-      DeviceOrientation.landscapeLeft,
-    ]);
+  void _checkOrientation() {
+    final orientation = MediaQuery.of(context).orientation;
+    setState(() {
+      _isLandscape = orientation == Orientation.landscape;
+    });
   }
 
-  Future<void> _unlockOrientation() async {
-    await SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    _checkOrientation();
   }
 
   Future<bool> _isImageValidForReport(String imagePath) async {
@@ -221,6 +223,42 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_showOrientationDialog && !_isLandscape) {
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.screen_rotation,
+                  size: 80,
+                  color: Colors.blue,
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Por favor, vire o seu telefone para a horizontal (paisagem) para tirar a foto.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _showOrientationDialog =
+                          false; // Hide the dialog when button is pressed.
+                    });
+                  },
+                  child: const Text("Entendido"),
+                )
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Criar reportagem'),
@@ -770,7 +808,6 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
   }
 }
 
-
 class CreateReportSuccessScreen extends StatelessWidget {
   final Map<String, dynamic>? report; // Receive the report data
 
@@ -779,140 +816,125 @@ class CreateReportSuccessScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Remove Scaffold's direct background color, as the body will handle the gradient
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFBE2425), // Darker red for AppBar to blend with gradient top
-        elevation: 0, // Removed shadow
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white), // Close icon
-          onPressed: () {
-            // Navigate back or close the screen
-            Navigator.pop(context);
-          },
-        ),
-        title: const Text(''), // Removed title
+        title: const Text('MapZzz'),
+        backgroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.black),
+        titleTextStyle:
+            const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
       ),
-      body: Container( // Wrap the content in a Container for the gradient
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFBE2425), // Dark Red (top)
-              Color(0xFFA6090A), // Even Darker Red (bottom)
-            ],
-          ),
-        ),
-        child: Center( // Centered the entire content
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0), // Added horizontal padding
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center, // Centered content vertically
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Image container to match the illustration
-                Container(
-                  width: 400, // Adjust size as needed
-                  height: 400, // Adjust size as needed
-                  // Using a placeholder image for the illustration.
-                  // In a real app, you would load your asset image here.
-                  decoration: const BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage("assets/images/sucess.png"), // Placeholder for the illustration
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  child: const Align(
-                    alignment: Alignment(0.4, -0.8), // Adjust position of the checkmark
-                    child: Icon(
-                      Icons.check_circle, // Filled checkmark for the illustration
-                      color: Colors.white,
-                      size: 40,
-                    ),
-                  ),
+      body: Padding(
+        //changed to padding
+        padding: EdgeInsets.only(top: 50),
+        child: Column(
+          //changed to column
+          //mainAxisAlignment: MainAxisAlignment.center, // Removed mainAxisAlignment
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.check_circle_outline,
+              color: Colors.red,
+              size: 120,
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Concluído.',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Reportagem criada com sucesso.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold), // Made message bold
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const <Widget>[
+                Text(
+                  'Você ganhou',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 20),
-                const Text(
-                  '+30 pontos', // Changed to +30 pontos
-                  style: TextStyle(
-                    fontSize: 32, // Increased font size
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white, // Changed text color to white
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  "Reportagem criada com sucesso!\nForam adicionados 30 pontos à sua carteira.", // Updated message
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.normal, // Adjusted font weight
-                    color: Colors.white, // Changed text color to white
-                  ),
-                ),
-                const SizedBox(height: 40),
-                SizedBox(
-                  width: 300,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (report != null && report!.containsKey('id')) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ReportDetailPage(report: report!),
-                          ),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content:
-                                  Text('Erro ao carregar detalhes da reportagem.')),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white, // Changed button background to white
-                      foregroundColor: Colors.red, // Changed text color to red
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
-                      textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold), // Increased font size and made bold
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25.0),
-                      ),
-                    ),
-                    child: const Text('Ver reportagem', style: TextStyle(color: Colors.red, fontSize: 13,)),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: 300,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => MapZzzPage(),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent, // Transparent background
-                      foregroundColor: Colors.white, // White text
-                      side: const BorderSide(color: Colors.white, width: 2), // White border
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
-                      textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold), // Increased font size and made bold
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25.0),
-                      ),
-                      elevation: 0, // No shadow for this button
-                    ),
-                    child: const Text('Voltar ao início', style: TextStyle(color: Colors.white, fontSize: 13,)),
-                  ),
+                SizedBox(width: 8),
+                Icon(Icons.star_border, color: Colors.red, size: 20),
+                SizedBox(width: 4),
+                Text(
+                  '10 pontos',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
-          ),
+            const SizedBox(height: 40),
+            SizedBox(
+              width: 300, // Increased width of the button.
+              height: 50, // increased height
+              child: ElevatedButton(
+                onPressed: () {
+                  if (report != null && report!.containsKey('id')) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ReportDetailPage(report: report!),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content:
+                              Text('Erro ao carregar detalhes da reportagem.')),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
+                  textStyle:
+                      const TextStyle(fontSize: 18), // Increased font size
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25.0),
+                  ),
+                ),
+                child: const Text('Ver reportagem'),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: 300, // Increased width of the button.
+              height: 50, // increased height
+              child: ElevatedButton(
+                onPressed: () {
+// Navigate back to the main map screen
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MapZzzPage(),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey[700],
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
+                  textStyle:
+                      const TextStyle(fontSize: 18), // Increased font size
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25.0),
+                  ),
+                ),
+                child: const Text('Voltar ao início'),
+              ),
+            ),
+          ],
         ),
       ),
     );
