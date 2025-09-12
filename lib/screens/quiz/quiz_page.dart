@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'dart:async';
+
 class MalariaQuizScreen extends StatefulWidget {
   final String language;
   const MalariaQuizScreen({super.key, required this.language});
@@ -32,14 +33,12 @@ class _MalariaQuizScreenState extends State<MalariaQuizScreen> {
   }
 
   void _loadQuestionsByLanguage() {
-    // This is where we call the language-specific function.
-    // You will need to implement the englishQuestions() and japaneseQuestions() functions.
     if (widget.language == 'en') {
-      malariaQuiz = englishQuestions(); // This function does not exist yet.
+      malariaQuiz = englishQuestions();
     } else if (widget.language == 'ja') {
-      malariaQuiz = japaneseQuestions(); // This function does not exist yet.
+      malariaQuiz = japaneseQuestions();
     } else {
-      malariaQuiz = allQuestions(); // This is the Portuguese version.
+      malariaQuiz = allQuestions();
     }
     _shuffleQuestionsList();
   }
@@ -129,6 +128,8 @@ class _MalariaQuizScreenState extends State<MalariaQuizScreen> {
           correctAnswersCount: _correctAnswersCount,
           totalQuestions: _shuffledQuestions.length,
           totalPointsEarned: totalPointsEarned,
+          languageCode:
+              widget.language, // Passing the language to the next screen
         ),
       ),
     );
@@ -179,7 +180,7 @@ class _MalariaQuizScreenState extends State<MalariaQuizScreen> {
           ],
         ),
         centerTitle: true,
-        actions: [
+        actions: const [
           // Empty actions to push title to center if needed by other widgets
           SizedBox(width: 50), // To balance the leading icon
         ],
@@ -194,7 +195,7 @@ class _MalariaQuizScreenState extends State<MalariaQuizScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.access_time, size: 18, color: Colors.grey[600]),
-                SizedBox(width: 5),
+                const SizedBox(width: 5),
                 Text(
                   _formatTime(_start),
                   style: TextStyle(
@@ -250,7 +251,7 @@ class _MalariaQuizScreenState extends State<MalariaQuizScreen> {
                       padding: const EdgeInsets.only(right: 8.0),
                       child: Text(
                         '${_currentQuestionIndex + 1}/${_shuffledQuestions.length}',
-                        style: TextStyle(
+                        style: const TextStyle(
                             color: Colors.black,
                             fontSize: 12,
                             fontWeight: FontWeight.bold),

@@ -19,28 +19,18 @@ class MapZzzPage extends StatelessWidget {
   }
 }
 
-class MalariaQuizScreen extends StatelessWidget {
-  const MalariaQuizScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Quiz Screen')),
-      body: Center(child: Text('Malaria Quiz')),
-    );
-  }
-}
-
 class QuizResultScreen extends StatefulWidget {
   final int correctAnswersCount;
   final int totalQuestions;
   final int totalPointsEarned;
+  final String languageCode;
 
   const QuizResultScreen({
     super.key,
     required this.correctAnswersCount,
     required this.totalQuestions,
     required this.totalPointsEarned,
+    required this.languageCode,
   });
 
   @override
@@ -48,10 +38,36 @@ class QuizResultScreen extends StatefulWidget {
 }
 
 class _QuizResultScreenState extends State<QuizResultScreen> {
+  // A map to hold all the translations with a placeholder for points.
+  static final Map<String, Map<String, String>> _localizedStrings = {
+    'en': {
+      'points_earned_text': 'You earned {points} points',
+      'retake_quiz_button': 'Retake quiz',
+      'back_to_start_button': 'Back to start',
+    },
+    'pt': {
+      'points_earned_text': 'ganhaste {points} pontos',
+      'retake_quiz_button': 'Refazer quiz',
+      'back_to_start_button': 'Voltar ao início',
+    },
+    'ja': {
+      'points_earned_text': '{points} ポイントを獲得しました',
+      'retake_quiz_button': 'クイズをやり直す',
+      'back_to_start_button': '最初に戻る',
+    },
+  };
+
   @override
   void initState() {
     super.initState();
     _updateUserPoints(widget.totalPointsEarned);
+  }
+
+  // Modified to handle the point interpolation dynamically.
+  String _getTranslatedString(String key) {
+    final language = _localizedStrings[widget.languageCode] ?? _localizedStrings['en']!;
+    final String baseString = language[key] ?? key;
+    return baseString.replaceFirst('{points}', widget.totalPointsEarned.toString());
   }
 
   Future<void> _updateUserPoints(int pointsToAdd) async {
@@ -62,8 +78,7 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
     }
 
     try {
-      final userDocRef =
-          FirebaseFirestore.instance.collection('users').doc(user.uid);
+      final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
 
       await FirebaseFirestore.instance.runTransaction((transaction) async {
         final userDoc = await transaction.get(userDocRef);
@@ -87,8 +102,7 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
 
         transaction.update(userDocRef, {'points': newTotalPoints});
 
-        print(
-            'User ${user.uid} points updated: $currentPoints + $pointsToAdd = $newTotalPoints');
+        print('User ${user.uid} points updated: $currentPoints + $pointsToAdd = $newTotalPoints');
       }).catchError((error) {
         print('Transaction failed: $error');
       });
@@ -99,6 +113,8 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final translatedStrings = _getTranslatedString;
+
     return Scaffold(
       backgroundColor: Colors.red[700], // Full screen red background
       body: Stack(
@@ -110,8 +126,7 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
             child: IconButton(
               icon: const Icon(Icons.close, color: Colors.white, size: 30),
               onPressed: () {
-                Navigator.of(context).popUntil(
-                    (route) => route.isFirst); // Go back to main screen
+                Navigator.of(context).popUntil((route) => route.isFirst); // Go back to main screen
               },
             ),
           ),
@@ -121,13 +136,10 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  // Image/Illustration at the top
-                  Image.asset(
-                    'assets/images/sucess.png', // Replace with your actual asset path
-                    // If you don't have this asset, use a placeholder:
-                    // Image.network('https://placehold.co/300x200/FF0000/FFFFFF?text=Quiz+Result'),
-                    height: 200, // Adjust height as needed
-                    fit: BoxFit.contain,
+                  // Placeholder for the success image
+                  const Text(
+                    '🎉',
+                    style: TextStyle(fontSize: 100),
                   ),
                   const SizedBox(height: 30.0),
 
@@ -142,19 +154,18 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
                   ),
                   const SizedBox(height: 10.0),
 
-                  // Points earned text
+                  // Points earned text (now localized)
                   Text(
-                    'ganhanaste ${widget.totalPointsEarned} pontos',
+                    translatedStrings('points_earned_text'),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 18.0,
-                      color: Colors.white
-                          .withOpacity(0.8), // Slightly transparent white
+                      color: Colors.white.withOpacity(0.8), // Slightly transparent white
                     ),
                   ),
                   const SizedBox(height: 60.0),
 
-                  // "Refazer quiz" Button
+                  // "Refazer quiz" Button (now localized)
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -163,39 +174,39 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const QuizScreen()),
+                            builder: (context) => const QuizScreen(),
+                          ),
                         );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white, // White background
                         padding: const EdgeInsets.symmetric(vertical: 18),
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(10.0), // Rounded corners
+                          borderRadius: BorderRadius.circular(10.0), // Rounded corners
                         ),
                         elevation: 0, // No shadow for this button
                       ),
                       child: Text(
-                        'Refazer quiz',
+                        translatedStrings('retake_quiz_button'),
                         style: TextStyle(
-                            color: Colors.red[700],
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold),
+                          color: Colors.red[700],
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 15.0),
 
-                  // "Voltar ao inicio" text button
+                  // "Voltar ao inicio" text button (now localized)
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).popUntil((route) => route.isFirst);
                     },
                     child: Text(
-                      'Voltar ao inicio',
+                      translatedStrings('back_to_start_button'),
                       style: TextStyle(
-                        color: Colors.white
-                            .withOpacity(0.8), // Slightly transparent white
+                        color: Colors.white.withOpacity(0.8), // Slightly transparent white
                         fontSize: 16,
                       ),
                     ),
@@ -209,3 +220,4 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
     );
   }
 }
+
