@@ -42,7 +42,7 @@ android {
         applicationId = "com.example.auth_bloc"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
-        minSdk = 23
+        minSdkVersion = "24"
         targetSdk = flutter.targetSdkVersion
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
@@ -70,7 +70,7 @@ dependencies {
     // ... other dependencies (like your flutter_local_notifications dependency)
 
     // Add the core library desugaring dependency
-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4' // You can check for a newer version if needed
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4' // You can check for a newer version if needed
 }
 
 flutter {

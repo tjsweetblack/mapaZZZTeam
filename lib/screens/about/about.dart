@@ -194,7 +194,7 @@ class AboutPage extends StatelessWidget {
               ),
               const SizedBox(height: 5.0),
               const Text(
-                'suporte@mapazzz.org', // Contact Email
+                'suporte@mapazzz.com', // Contact Email
                 style: TextStyle(
                   fontSize: 16.0,
                   fontWeight: FontWeight.bold,

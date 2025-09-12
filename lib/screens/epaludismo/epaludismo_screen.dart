@@ -1,4 +1,3 @@
-import 'package:auth_bloc/screens/main_screen.dart';
 import 'package:flutter/material.dart';
 import 'epaludismo_result_screen.dart'; // Assuming epaludismo_result_screen.dart is the file name
 
@@ -21,91 +20,141 @@ class _EPaldudismoScreenState extends State<EPaldudismoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title:
-            const Text('EPaludismo ?', style: TextStyle(color: Colors.black)),
-        backgroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.black),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pushReplacement(
-                context, MaterialPageRoute(builder: (context) => MapZzzPage()));
-          },
-        ),
-      ),
-      backgroundColor: Colors.white, // Set Scaffold background to white
-      body: Padding(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 30.0,
-            vertical: 25.0), // Increased horizontal and vertical padding
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 30), // Increased spacing
-            const Text(
-              'Datalhe os sintomas do paciente e receba a probalidade de malaria',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 18, // Slightly reduced font size
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(height: 30), // Increased spacing
-            const Text(
-              'Detalhes de sintomas',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.red,
-              ),
-            ),
-            const SizedBox(height: 15), // Increased spacing
-            Container(
-              height: 150, // Reduced height for the input field
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10.0),
-                border: Border.all(color: Colors.black), // Add black border
-              ),
-              child: TextFormField(
-                controller: _symptomsController,
-                maxLines: 5, // Set a specific maxLines to control height
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  hintText:
-                      'Descreve como te sentes no momento, ou os symtomas que sentes npo momento.', // Placeholder text as in the image
-                  hintStyle: TextStyle(color: Colors.grey),
-                ),
-                style: const TextStyle(color: Colors.black87),
-              ),
-            ),
-            const SizedBox(height: 40), // Increased spacing
-            ElevatedButton(
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          // Back button
+          Positioned(
+            top: 50.0,
+            left: 20.0,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
               onPressed: () {
-                final String symptoms = _symptomsController.text;
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          MalariaResultScreen(symptomsDescription: symptoms)),
-                );
+                Navigator.pop(context);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(5.0),
-                ),
-              ),
-              child: const Text(
-                'Ver Resultados',
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
             ),
-          ],
-        ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 30.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Spacer(flex: 2),
+
+                // Icon
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.electric_meter, // Use a suitable icon from Flutter's library
+                      size: 60,
+                      color: Colors.red,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Title
+                const Text(
+                  'É Paludismo?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Subtitle/Description
+                const Text(
+                  'Descreva seus sintomas detalhadamente para que nossa IA possa avaliar a probabilidade de malária.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                  ),
+                ),
+
+                const SizedBox(height: 30),
+
+                // Text Input Field
+                Container(
+                  height: 200, // Adjusted height to match the image
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: TextFormField(
+                      controller: _symptomsController,
+                      maxLines: null, // Allows the text to wrap indefinitely
+                      expands: true,
+                      textAlignVertical: TextAlignVertical.top,
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'Descrição',
+                        hintStyle: TextStyle(color: Colors.grey),
+                      ),
+                      style: const TextStyle(color: Colors.black87),
+                    ),
+                  ),
+                ),
+
+                const Spacer(flex: 1),
+
+                // Button
+                ElevatedButton(
+                  onPressed: () {
+                    final String symptoms = _symptomsController.text;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              MalariaResultScreen(symptomsDescription: symptoms)),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red[700],
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30.0),
+                    ),
+                  ),
+                  child: const Text(
+                    'Iniciar avaliação',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // AI Powered Text
+                const Text(
+                  'AI Powered',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 12,
+                  ),
+                ),
+
+                const Spacer(flex: 1),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

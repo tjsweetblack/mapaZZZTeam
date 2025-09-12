@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:auth_bloc/api/firebase_api.dart';
 import 'package:auth_bloc/l10n/app_localizations.dart';
 import 'package:auth_bloc/logic/cubit/auth_cubit.dart';
 import 'package:auth_bloc/routing/routes.dart';
+import 'package:auth_bloc/screens/google_map.dart';
 import 'package:auth_bloc/screens/map_info/map_info.dart';
 import 'package:auth_bloc/screens/menu.dart';
 import 'package:auth_bloc/screens/rank_info/rank_info.dart';
@@ -11,9 +13,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart'; // Import geolocator
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_inappwebview/src/in_app_webview/in_app_webview.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -26,7 +27,8 @@ class MapZzzPage extends StatefulWidget {
 class _MapZzzPageState extends State<MapZzzPage> {
   final LatLng belasLuanda = LatLng(-8.9036, 13.2489);
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  MapController _mapController = MapController();
+  GoogleMapController? _mapController;
+
   String _riskLevelText =
       'Calculando o nível de risco...'; // Initial loading text
   final FirebaseApi _firebaseApi = FirebaseApi();
@@ -57,9 +59,11 @@ class _MapZzzPageState extends State<MapZzzPage> {
       print("Error during initial risk calculation setup: $e");
       // Set a default risk text if fetching or location fails
       if (mounted) {
-        setState(() {
-          _riskLevelText = 'Não foi possível determinar o nível de risco.';
-        });
+        _showRiskDialog(
+            'Indeterminado',
+            'Não foi possível determinar o nível de risco.',
+            Icons.help_outline,
+            Colors.grey);
       }
     }
   }
@@ -154,17 +158,41 @@ class _MapZzzPageState extends State<MapZzzPage> {
       }
 
       if (mounted) {
-        setState(() {
-          _riskLevelText = initialRiskText;
-        });
+        // Instead of setting text, show the dialog
+        IconData dialogIcon;
+        Color dialogColor;
+        String dialogTitle;
+
+        switch (highestRiskLevel) {
+          case 1:
+            dialogTitle = 'Risco Baixo';
+            dialogIcon = Icons.shield_outlined;
+            dialogColor = Colors.green;
+            break;
+          case 2:
+            dialogTitle = 'Risco Médio';
+            dialogIcon = Icons.warning_amber_rounded;
+            dialogColor = Colors.orange;
+            break;
+          case 3:
+            dialogTitle = 'Risco Alto';
+            dialogIcon = Icons.gpp_bad_rounded;
+            dialogColor = Colors.red;
+            break;
+          default: // riskLevel is 0
+            dialogTitle = 'Sem Risco';
+            dialogIcon = Icons.check_circle_outline;
+            dialogColor = Colors.blue;
+            break;
+        }
+        _showRiskDialog(dialogTitle, initialRiskText, dialogIcon, dialogColor);
       }
-      print("Initial risk level text set to: $_riskLevelText");
+      print("Initial risk level text set to: $initialRiskText");
     } catch (e) {
       print("Error calculating initial risk level: $e");
       if (mounted) {
-        setState(() {
-          _riskLevelText = 'Erro ao determinar o nível de risco.';
-        });
+        _showRiskDialog('Erro', 'Erro ao determinar o nível de risco.',
+            Icons.error_outline, Colors.black);
       }
     }
   }
@@ -177,25 +205,24 @@ class _MapZzzPageState extends State<MapZzzPage> {
     // on a stream/future provided from here to get risk levels.
     // For now, let's keep it to allow MapWidget to potentially update the text.
     if (mounted) {
-      setState(() {
-        _riskLevelText = newText;
-      });
+      // This function is no longer used to update the UI directly.
+      // If you need to show the dialog again on updates, you can call _showRiskDialog here.
     }
   }
 
-  void _recenterMapToUser() async {
-    try {
-      final Position position = await _getCurrentLocation();
-      _mapController.move(LatLng(position.latitude, position.longitude), 15.0);
-    } catch (e) {
-      print("Error recentering map: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-                'Não foi possível obter a localização atual para recentralizar.')),
-      );
-    }
-  }
+  // void _recenterMapToUser() async {
+  //   try {
+  //     final Position position = await _getCurrentLocation();
+  //     _mapController.move(LatLng(position.latitude, position.longitude), 15.0);
+  //   } catch (e) {
+  //     print("Error recentering map: $e");
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(
+  //           content: Text(
+  //               'Não foi possível obter a localização atual para recentralizar.')),
+  //     );
+  //   }
+  // }
 
   Future<Position> _getCurrentLocation() async {
     bool serviceEnabled;
@@ -238,6 +265,70 @@ class _MapZzzPageState extends State<MapZzzPage> {
     }
   }
 
+  void _showRiskDialog(
+      String title, String message, IconData icon, Color color) {
+    showDialog(
+      context: context,
+      barrierDismissible: true, // User can tap outside to dismiss
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.0),
+          ),
+          elevation: 5,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min, // To make the dialog compact
+              children: <Widget>[
+                Icon(icon, color: color, size: 60),
+                SizedBox(height: 16),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.black87,
+                  ),
+                ),
+                SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('OK, Entendi',
+                      style: TextStyle(color: Colors.black)),
+                  style: ElevatedButton.styleFrom(backgroundColor: color),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authCubit = context.watch<AuthCubit>();
@@ -256,7 +347,7 @@ class _MapZzzPageState extends State<MapZzzPage> {
         title: Row(
           children: [
             Text(
-              'MapaZzz',
+              "MapaZZZ",
               style:
                   TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
             ),
@@ -358,77 +449,8 @@ class _MapZzzPageState extends State<MapZzzPage> {
       drawer: buildAppDrawer(context),
       body: Stack(
         children: [
-          MapWidget(
-            mapController: _mapController,
-            onRiskLevelChanged:
-                _updateRiskLevelText, // Keep this to allow MapWidget to potentially update
-          ),
-          Positioned(
-            top: 16,
-            // Remove left and right properties to allow Center to work horizontally
-            // left: 40,
-            // right: 32,
-            // Add left: 0 and right: 0 to make Positioned span the full width
-            left: 0,
-            right: 0,
-            child: Center(
-              // This Center widget will now center the Row horizontally
-              child: Row(
-                // Use MainAxisSize.min so the Row only takes up needed space
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      // Optional: Add a shadow for better visibility
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          spreadRadius: 1,
-                          blurRadius: 3,
-                          offset: Offset(0, 1),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      _riskLevelText, // Display the state variable
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 8), // Add some spacing between text and icon
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => MapExplanationPage(),
-                        ),
-                      );
-                    },
-                    // Consider adding a background or padding for easier tapping
-                    child: Container(
-                      padding:
-                          const EdgeInsets.all(4.0), // Add padding for tap area
-                      decoration: BoxDecoration(
-                        color:
-                            Colors.black.withOpacity(0.3), // Slight background
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.info_outline,
-                          color: Colors.white,
-                          size: 28), // Adjusted size slightly
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          MapWidget2(),
+          // The Positioned widget for the risk level text has been removed.
           Positioned(
             bottom: 200,
             right: 16,
@@ -526,10 +548,19 @@ class _MapZzzPageState extends State<MapZzzPage> {
                 ),
                 SizedBox(height: 8),
                 GestureDetector(
-                  onTap: _recenterMapToUser, // Call the recenter function
+                  onTap: () async {
+                    Navigator.push(
+                      // Changed to push to allow back navigation
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MapExplanationPage(),
+                      ),
+                    );
+                  },
                   child: CircleAvatar(
-                      backgroundColor: Colors.white,
-                      child: Icon(Icons.my_location, color: Colors.red)),
+                    backgroundColor: Colors.white,
+                    child: Icon(Icons.info_outline, color: Colors.red),
+                  ),
                 ),
                 SizedBox(height: 8),
                 GestureDetector(
@@ -548,6 +579,32 @@ class _MapZzzPageState extends State<MapZzzPage> {
                       child: Icon(Icons.camera_alt, color: Colors.red)),
                 ),
               ],
+            ),
+          ),
+          Positioned(
+            bottom: 16, // Distance from the bottom of the screen
+            left: 16, // Distance from the left side of the screen
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MapExplanationPage(),
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.all(8.0), // Add padding for tap area
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.3), // Slight background
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.info_outline,
+                  color: Colors.white,
+                  size: 28, // Adjusted size slightly
+                ),
+              ),
             ),
           ),
           DraggableScrollableSheet(
@@ -576,7 +633,7 @@ class _MapZzzPageState extends State<MapZzzPage> {
                     ),
                     SizedBox(height: 16),
                     Text(
-                      'Reportagens',
+                      "reportagens",
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
@@ -753,495 +810,5 @@ class _ReportListState extends State<ReportList> {
         );
       },
     );
-  }
-}
-
-class MapWidget extends StatefulWidget {
-  final MapController mapController;
-  final Function(String) onRiskLevelChanged;
-
-  const MapWidget(
-      {Key? key, required this.mapController, required this.onRiskLevelChanged})
-      : super(key: key);
-
-  @override
-  State<MapWidget> createState() => _MapWidgetState();
-}
-
-class _MapWidgetState extends State<MapWidget> {
-  LatLng? _currentLocation;
-  bool _locationFetched = false;
-  bool _initialLoadDone = false;
-  List<CircleMarker> _currentHeatmapCircles = [];
-  String _riskLevelText = 'Está numa zona sem risco.';
-
-  @override
-  void initState() {
-    super.initState();
-    _getCurrentUserLocation();
-  }
-
-  Future<void> _getCurrentUserLocation() async {
-    try {
-      final Position position = await _getCurrentLocation();
-      print(
-          "Fetched Location: Latitude: ${position.latitude}, Longitude: ${position.longitude}");
-      setState(() {
-        _currentLocation = LatLng(position.latitude, position.longitude);
-        _locationFetched = true;
-      });
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_currentLocation != null) {
-          widget.mapController.move(_currentLocation!, 15.0);
-        }
-      });
-      print('this is it No error:');
-    } catch (e) {
-      print('this is it error:');
-      print("Error getting location: $e");
-      setState(() {
-        _currentLocation = LatLng(-8.913499751058776, 13.18721354420165);
-        _locationFetched = true;
-      });
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_currentLocation != null) {
-          widget.mapController.move(_currentLocation!, 13.0);
-        }
-      });
-    }
-  }
-
-  Future<Position> _getCurrentLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      return Future.error('Os serviços de localização estão desativados.');
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        return Future.error('As permissões de localização foram negadas.');
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      return Future.error(
-          'As permissões de localização foram negadas permanentemente, não podemos solicitar permissões.');
-    }
-
-    return await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
-  }
-
-  final double heatmapRadiusKm = 0.3;
-
-  Widget _greyScaleTileBuilder(
-    BuildContext context,
-    Widget tileWidget,
-    TileImage tile,
-  ) {
-    return ColorFiltered(
-      colorFilter: const ColorFilter.matrix(<double>[
-        0.15,
-        0.50,
-        0.05,
-        0,
-        0,
-        0.15,
-        0.50,
-        0.05,
-        0,
-        0,
-        0.15,
-        0.50,
-        0.05,
-        0,
-        0,
-        0,
-        0,
-        0,
-        1,
-        0,
-      ]),
-      child: tileWidget,
-    );
-  }
-
-  Future<void> _saveNewZones(List<CircleMarker> circles) async {
-    final riskCircles = circles.where((circle) {
-      final opacity = circle.color.opacity;
-      return opacity >= 0.2 && opacity <= 0.9;
-    }).toList();
-
-    if (riskCircles.isEmpty) {
-      print("No risk level circles to process for saving.");
-      return;
-    }
-
-    try {
-      final zonesDocRef = FirebaseFirestore.instance
-          .collection('zones')
-          .doc('87XfsZASiHtEwk1GEdO6');
-
-      final docSnapshot = await zonesDocRef.get();
-
-      List<Map<String, dynamic>> existingZones = [];
-      if (docSnapshot.exists) {
-        final data = docSnapshot.data();
-        if (data != null && data['zones'] is List) {
-          existingZones = (data['zones'] as List<dynamic>)
-              .whereType<Map<String, dynamic>>()
-              .toList();
-        }
-      }
-
-      List<Map<String, dynamic>> updatedZonesList = List.from(existingZones);
-      bool changesMade = false;
-
-      final Set<String> processedCoords = {};
-
-      for (final circle in riskCircles) {
-        final double currentLat = circle.point.latitude;
-        final double currentLon = circle.point.longitude;
-
-        final String coordKey = '${currentLat}_${currentLon}';
-
-        if (processedCoords.contains(coordKey)) {
-          continue;
-        }
-        processedCoords.add(coordKey);
-
-        int? currentRiskLevel;
-        final double opacity = circle.color.opacity;
-
-        if (opacity >= 0.8) {
-          currentRiskLevel = 3;
-        } else if (opacity >= 0.5) {
-          currentRiskLevel = 2;
-        } else if (opacity >= 0.2) {
-          currentRiskLevel = 1;
-        }
-
-        if (currentRiskLevel == null) {
-          print(
-              "Warning: Circle with unexpected opacity (${opacity}) processed.");
-          continue;
-        }
-
-        bool foundExistingMatch = false;
-        for (int i = 0; i < updatedZonesList.length; i++) {
-          final existingZone = updatedZonesList[i];
-          final existingLat = existingZone['latitude'] as double?;
-          final existingLon = existingZone['longitude'] as double?;
-          final existingRiskLevel = existingZone['riskLevel'];
-
-          if (existingLat != null &&
-              existingLon != null &&
-              existingLat == currentLat &&
-              existingLon == currentLon) {
-            foundExistingMatch = true;
-
-            if (existingRiskLevel == null) {
-              updatedZonesList[i]['riskLevel'] = currentRiskLevel;
-              changesMade = true;
-              print(
-                  'Updated existing zone: $currentLat, $currentLon with risk level $currentRiskLevel');
-            }
-            break;
-          }
-        }
-
-        if (!foundExistingMatch) {
-          final newZoneEntry = {
-            'latitude': currentLat,
-            'longitude': currentLon,
-            'riskLevel': currentRiskLevel,
-          };
-          updatedZonesList.add(newZoneEntry);
-          changesMade = true;
-          print(
-              'Added new zone: $currentLat, $currentLon with risk level $currentRiskLevel');
-        }
-      }
-
-      if (changesMade) {
-        print('Saving updated zones list to Firestore...');
-        await zonesDocRef.set({'zones': updatedZonesList});
-        print('Zones list saved successfully.');
-      } else {
-        print('No new zones added or existing zones updated with risk level.');
-      }
-    } catch (e) {
-      print("Error saving or updating zones in Firestore: $e");
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return _locationFetched && _currentLocation != null
-        ? FlutterMap(
-            key: UniqueKey(),
-            mapController: widget.mapController,
-            options: MapOptions(
-              initialCenter: _currentLocation!,
-              initialZoom: 15.0,
-              interactionOptions: InteractionOptions(
-                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
-                cursorKeyboardRotationOptions:
-                    const CursorKeyboardRotationOptions(),
-                keyboardOptions: const KeyboardOptions(),
-              ),
-            ),
-            children: [
-              TileLayer(
-                urlTemplate:
-                    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                subdomains: const ['a', 'b', 'c'],
-                tileBuilder: _greyScaleTileBuilder,
-                userAgentPackageName: 'com.example.auth_bloc',
-              ),
-              // Use a non-moving MarkerLayer.
-
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('reports')
-                    .where('status', isEqualTo: 'active')
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Stack(
-                      children: [
-                        CircleLayer(circles: _currentHeatmapCircles),
-                        MarkerLayer(markers: []),
-                        const Center(child: CircularProgressIndicator()),
-                      ],
-                    );
-                  }
-
-                  if (snapshot.hasError) {
-                    print("Error fetching reports: ${snapshot.error}");
-                    return const Center(
-                        child: Text('Erro ao carregar reportagens'));
-                  }
-
-                  final reports = snapshot.data!.docs
-                      .map((doc) => doc.data() as Map<String, dynamic>)
-                      .toList();
-                  final reportMarkers = <Marker>[];
-                  final heatmapCircles = <CircleMarker>[];
-                  final processedReports = <Map<String, dynamic>>[];
-                  final double heatmapRadiusMeters = heatmapRadiusKm * 1000;
-                  String currentRiskLevelText = 'Está numa zona sem risco.';
-
-                  for (final report in reports) {
-                    final latitude = report['latitude'] as double?;
-                    final longitude = report['longitude'] as double?;
-
-                    if (latitude != null && longitude != null) {
-                      reportMarkers.add(
-                        Marker(
-                          point: LatLng(latitude, longitude),
-                          width: 20,
-                          height: 20,
-                          child: GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      ReportDetailPage(report: report),
-                                ),
-                              );
-                            },
-                            child: Container(
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white,
-                              ),
-                              child: Center(
-                                child: Container(
-                                  width: 10,
-                                  height: 10,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.red.withOpacity(0.8),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-                  }
-
-                  for (final report1 in reports) {
-                    if (processedReports.any((pReport) =>
-                        pReport['latitude'] == report1['latitude'] &&
-                        pReport['longitude'] == report1['longitude'])) {
-                      continue;
-                    }
-
-                    final lat1 = report1['latitude'] as double?;
-                    final lon1 = report1['longitude'] as double?;
-
-                    if (lat1 != null && lon1 != null) {
-                      List<Map<String, dynamic>> reportsInRadius = [];
-                      for (final report2 in reports) {
-                        final lat2 = report2['latitude'] as double?;
-                        final lon2 = report2['longitude'] as double?;
-
-                        if (lat2 != null && lon2 != null) {
-                          final distance = const Distance()
-                              .distance(LatLng(lat1, lon1), LatLng(lat2, lon2));
-                          if (distance <= heatmapRadiusMeters) {
-                            reportsInRadius.add(report2);
-                          }
-                        }
-                      }
-
-                      if (reportsInRadius.length >= 3) {
-                        double opacity = 0.0;
-                        if (reportsInRadius.length >= 3 &&
-                            reportsInRadius.length < 6) {
-                          opacity = 0.3;
-                        } else if (reportsInRadius.length >= 6 &&
-                            reportsInRadius.length < 9) {
-                          opacity = 0.6;
-                        } else if (reportsInRadius.length >= 9) {
-                          opacity = 0.9;
-                        }
-
-                        double sumLat = 0;
-                        double sumLon = 0;
-                        int count = 0;
-                        for (final r in reportsInRadius) {
-                          final rLat = r['latitude'] as double?;
-                          final rLon = r['longitude'] as double?;
-
-                          if (rLat != null && rLon != null) {
-                            sumLat += rLat;
-                            sumLon += rLon;
-                            count++;
-                          }
-                        }
-                        final centerLat = count > 0 ? sumLat / count : lat1;
-                        final centerLon = count > 0 ? sumLon / count : lon1;
-
-                        final clusterCenter = LatLng(centerLat, centerLon);
-
-                        heatmapCircles.add(
-                          CircleMarker(
-                            point: clusterCenter,
-                            radius: heatmapRadiusMeters,
-                            useRadiusInMeter: true,
-                            color: Colors.red.withOpacity(opacity),
-                          ),
-                        );
-
-                        processedReports.addAll(reportsInRadius);
-                      }
-                    }
-                  }
-
-                  _saveNewZones(heatmapCircles);
-
-                  if (!_initialLoadDone && _currentLocation != null) {
-                    for (final circle in heatmapCircles) {
-                      final distanceToCircleCenter = const Distance().distance(
-                        _currentLocation!,
-                        circle.point,
-                      );
-                      if (distanceToCircleCenter <= circle.radius) {
-                        if (circle.color.opacity == 0.3) {
-                          currentRiskLevelText =
-                              'Está numa zona de baixo risco.';
-                          break;
-                        } else if (circle.color.opacity == 0.6) {
-                          currentRiskLevelText =
-                              'Está numa zona de médio risco.';
-                          break;
-                        } else if (circle.color.opacity == 0.9) {
-                          currentRiskLevelText =
-                              'Está numa zona de alto risco.';
-                          break;
-                        }
-                      }
-                    }
-
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      widget.onRiskLevelChanged(currentRiskLevelText);
-                      setState(() {
-                        _initialLoadDone = true;
-                      });
-                    });
-                  }
-
-                  _currentHeatmapCircles = heatmapCircles;
-
-                  return Stack(
-                    children: [
-                      CircleLayer(circles: heatmapCircles),
-                      MarkerLayer(
-                        markers: [
-                          Marker(
-                            width: 100.0,
-                            height: 30.0,
-                            point: _currentLocation!,
-                            child: Transform.translate(
-                              offset: const Offset(0.0, -40.0),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(8.0),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.red,
-                                      spreadRadius: 2,
-                                      blurRadius: 5,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8.0, vertical: 4.0),
-                                child: const Text(
-                                  "Você está aqui!",
-                                  style: TextStyle(
-                                    fontSize: 12.0,
-                                    fontWeight: FontWeight.bold,
-                                    color:
-                                        Colors.red, // Ensure this is not null
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Marker(
-                            width: 120.0,
-                            height: 60.0,
-                            point: _currentLocation!,
-                            child: const Icon(
-                              Icons.location_pin,
-                              color: Color.fromARGB(255, 255, 255, 255),
-                              size: 40.0,
-                            ),
-                          ),
-                        ],
-                      ),
-                      MarkerLayer(markers: reportMarkers),
-                    ],
-                  );
-                },
-              ),
-            ],
-          )
-        : const Center(child: CircularProgressIndicator());
   }
 }

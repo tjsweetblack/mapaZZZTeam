@@ -4,7 +4,9 @@ import 'package:auth_bloc/screens/about/about.dart';
 import 'package:auth_bloc/screens/blog/blog_screen.dart';
 import 'package:auth_bloc/screens/epaludismo/epaludismo_screen.dart';
 import 'package:auth_bloc/screens/profile/profile.dart';
+import 'package:auth_bloc/screens/profile/rewards/rewards.dart';
 import 'package:auth_bloc/screens/quiz/quiz_page.dart';
+import 'package:auth_bloc/screens/quiz/quiz_start.dart';
 import 'package:auth_bloc/screens/word_puzzle.dart/screens/home_screen.dart';
 import 'package:auth_bloc/screens/word_puzzle.dart/screens/welcome_screen.dart';
 import 'package:flutter/material.dart';
@@ -15,151 +17,163 @@ import 'package:auth_bloc/routing/routes.dart';
 Widget buildAppDrawer(BuildContext context) {
   final screenWidth = MediaQuery.of(context).size.width;
   return SizedBox(
-    width: screenWidth * 0.7, // Covers 70% of the screen
+    width: screenWidth * 0.9, // Covers 70% of the screen
     child: Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
+      backgroundColor: Colors.white,
+      child: Column(
         children: <Widget>[
-          DrawerHeader(
-            decoration: BoxDecoration(
-              color: Colors.white, // Match the header color from the image
+          Padding(
+            padding: const EdgeInsets.only(
+              top: 50.0,
+              left: 20.0,
+              bottom: 20.0,
             ),
-            child: Align(
-              alignment: Alignment.bottomLeft,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 16.0, left: 16.0),
-                child: Text(
-                  'Menu',
+            child: Row(
+              children: [
+                Image.asset(
+                  'assets/images/logo/logo4.png',
+                  height: 30,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Mapazzz',
                   style: TextStyle(
                     color: Colors.black,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
+              ],
             ),
           ),
-          ListTile(
-            leading: Icon(
-              Icons.person_outline,
-              color: Colors.red,
-            ), // Match the icon from the image
-            title: Text('Perfil', style: TextStyle(color: Colors.red)),
-            onTap: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          const ProfileScreen())); // Close the drawer
-              // Handle Perfil action
-            },
-          ),
-          ListTile(
-            leading: Icon(Icons.question_mark_outlined,
-                color: Colors.red), // Using a question mark icon for Quiz
-            title: Text('Quiz', style: TextStyle(color: Colors.red)),
-            onTap: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          MalariaQuizScreen())); // Close the drawer
-              // Handle Quiz action
-            },
-          ),
-          ListTile(
-            leading: Icon(Icons.abc,
-                color: Colors.red), // Using an article icon for Blog
-            title: Text('word puzzle', style: TextStyle(color: Colors.red)),
-            onTap: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          const WelcomeScreen())); // Close the drawer
-              // Handle Blog action
-            },
-          ),
-          ListTile(
-            leading: Icon(Icons.article_outlined,
-                color: Colors.red), // Using an article icon for Blog
-            title: Text('Blog', style: TextStyle(color: Colors.red)),
-            onTap: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          const BlogPage())); // Close the drawer
-              // Handle Blog action
-            },
-          ),
-          ListTile(
-            leading: Icon(Icons.help_outline,
-                color: Colors.red), // Using a help icon for EPaludismo
-            title: Text('EPaludismo ?', style: TextStyle(color: Colors.red)),
-            onTap: () {
-              Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          const EPaldudismoScreen())); // Close the drawer
-              // Handle EPaludismo action
-            },
-          ),
-          ListTile(
-            leading: Icon(Icons.info_outline,
-                color: Colors.red), // Using a help icon for EPaludismo
-            title: Text('sobre', style: TextStyle(color: Colors.red)),
-            onTap: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => AboutPage())); // Close the drawer
-              // Handle EPaludismo action
-            },
-          ),
-          ListTile(
-            leading: Icon(Icons.language, color: Colors.red),
-            title: Text(AppLocalizations.of(context)!.changeLanguage,
-                style: TextStyle(color: Colors.red)),
-            onTap: () {
-              // Close the drawer before showing the dialog
-              Navigator.pop(context);
-              _showLanguageDialog(context);
-            },
-          ),
-          ListTile(
-            leading: Icon(Icons.logout,
-                color: Colors.red), // Match the icon from the image
-            title: Text('Logout', style: TextStyle(color: Colors.red)),
-            onTap: () async {
-              Navigator.pop(context); // Close the drawer
-              await context.read<AuthCubit>().signOut();
-              if (context.mounted) {
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  Routes.loginScreen,
-                  (route) => false,
-                );
-              }
-            },
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Estas em',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: <Widget>[
+                ListTile(
+                  leading: const Icon(
+                    Icons.person_outline,
+                    color: Colors.red,
+                  ),
+                  title: const Text(
+                    'Perfil',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Close the drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ProfileScreen(),
+                      ),
+                    );
+                  },
                 ),
-                SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(Icons.location_on, color: Colors.red, size: 16),
-                    SizedBox(width: 4),
-                    Text(
-                        'Belas, Luanda'), // Replace with actual location if needed
-                  ],
+                ListTile(
+                  leading: const Icon(Icons.quiz_outlined, color: Colors.red),
+                  title: const Text(
+                    'Quiz',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Close the drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => QuizScreen(),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading:
+                      const Icon(Icons.description_outlined, color: Colors.red),
+                  title: const Text(
+                    'Notícias',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Close the drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const BlogPage(),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading:
+                      const Icon(Icons.thermostat_outlined, color: Colors.red),
+                  title: const Text(
+                    'É-Paludismo',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Close the drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const EPaldudismoScreen(),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.star_border, color: Colors.red),
+                  title: const Text(
+                    'Reivindicar prêmio',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Close the drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const RewardsPage(),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.info_outline, color: Colors.red),
+                  title: const Text(
+                    'Sobre',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Close the drawer
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AboutPage(),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -167,64 +181,67 @@ Widget buildAppDrawer(BuildContext context) {
           Padding(
             padding:
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Text(
-              '42 Luanda ISPTEC', // Example location from image
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-            ),
-          ),
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Text(
-              'Talatona', // Example location from image
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-            ),
-          ),
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Text(
-              'Luanda', // Example location from image
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-            ),
-          ),
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Text(
-              'Angola', // Example location from image
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'MapaZZZ',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.star, color: Colors.red, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Rua 13 Av. Al, Talatona\nLuanda - Angola',
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const SizedBox(height: 16),
+                OutlinedButton(
+                  onPressed: () async {
+                    Navigator.pop(context); // Close the drawer
+                    await context.read<AuthCubit>().signOut();
+                    if (context.mounted) {
+                      Navigator.of(context).pushNamedAndRemoveUntil(
+                        Routes.loginScreen,
+                        (route) => false,
+                      );
+                    }
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                  child: const Text(
+                    'Logout',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
             ),
           ),
         ],
       ),
     ),
   );
-}
-
-void _showLanguageDialog(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (BuildContext dialogContext) {
-      return AlertDialog(
-        title: Text(AppLocalizations.of(context)!.selectLanguage),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-                title: Text(AppLocalizations.of(context)!.english),
-                onTap: () => _changeLanguage(dialogContext, 'en')),
-            ListTile(
-                title: Text(AppLocalizations.of(context)!.spanish),
-                onTap: () => _changeLanguage(dialogContext, 'es')),
-          ],
-        ),
-      );
-    },
-  );
-}
-
-void _changeLanguage(BuildContext context, String languageCode) {
-  context.read<LanguageCubit>().changeLocale(Locale(languageCode));
-  Navigator.of(context).pop(); // Close the dialog
 }

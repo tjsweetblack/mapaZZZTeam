@@ -15,7 +15,7 @@ import 'package:google_generative_ai/google_generative_ai.dart'; // Import the g
 
 // Add the API key.  Make sure to replace it with your actual API key.
 const String _apiKey =
-    'AIzaSyBAO_rST4zn3HeQNFHDCXaczAwLMQ0VROg'; //  <--- Replace with your actual API key
+    'AIzaSyDAymoAdQKM79yNb7P0ki5KbRKZIOaDbWY'; //  <--- Replace with your actual API key
 
 class CreateReportCameraScreen extends StatefulWidget {
   @override
@@ -29,20 +29,18 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
   late Future<void> _initializeCameraControllerFuture;
   List<CameraDescription> _cameras = [];
   bool _isAnalyzing = false; // Track image analysis state
-  bool _isLandscape = false; // Track orientation
-  bool _showOrientationDialog = true;
 
   @override
   void initState() {
     super.initState();
     _setupCamera();
     WidgetsBinding.instance.addObserver(this);
-    _checkOrientation();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (_cameraController == null) {
+    // Use .value.isInitialized to check if the controller is initialized.
+    if (!_cameraController.value.isInitialized) {
       return;
     }
     if (state == AppLifecycleState.inactive ||
@@ -91,51 +89,53 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
     super.dispose();
   }
 
-  void _checkOrientation() {
-    final orientation = MediaQuery.of(context).orientation;
-    setState(() {
-      _isLandscape = orientation == Orientation.landscape;
-    });
-  }
-
-  @override
-  void didChangeMetrics() {
-    super.didChangeMetrics();
-    _checkOrientation();
-  }
-
   Future<bool> _isImageValidForReport(String imagePath) async {
     try {
-      final generativeModel = GenerativeModel(
-        model: 'gemini-1.5-flash-latest',
-        apiKey: _apiKey,
-      );
+      final apiUrl = 'https://image-validation-api.vercel.app/analyze-image';
+      var request = http.MultipartRequest('POST', Uri.parse(apiUrl));
+      request.files.add(await http.MultipartFile.fromPath('image', imagePath));
 
-      Uint8List imageBytes = await File(imagePath).readAsBytes();
-      final content = [
-        Content.multi([
-          TextPart(
-              "Analyze this image to detect potential mosquito breeding sites. Consider the presence of any of the following: \n"
-              "- Stagnant water (puddles, pools, containers)\n"
-              "- Vegetation capable of holding water (e.g., dense grass, bromeliads)\n"
-              "- Discarded containers (tires, bottles, cans, flowerpots)\n"
-              "- Accumulated trash or debris\n"
-              "- Gutters or drainage systems\n"
-              "- Any other area where water may collect and remain for more than 4 days.\n"
-              "Respond with 'valid' if the image clearly shows one or more of these conditions, and 'invalid' if none are clearly present.  Focus on the presence of standing water and items/areas that can hold water. "),
-          DataPart('image/jpeg', imageBytes),
-        ]),
-      ];
+      var response = await request.send();
+      var responseBody = await response.stream.bytesToString();
 
-      final response = await generativeModel.generateContent(content);
-      final aiResponse = response.text?.toLowerCase().trim();
-
-      return aiResponse == 'valid';
-    } catch (e) {
-      print("Error analyzing image: $e");
+      if (response.statusCode == 200) {
+        final data = jsonDecode(responseBody);
+        final result = data['result']?.toLowerCase()?.trim();
+        return result == 'valid';
+      } else {
+        if (mounted) {
+          await showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Erro'),
+              content: const Text(
+                  'Erro ao analisar a imagem. Por favor, tente novamente ou contate o MapaZZZ.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Fechar'),
+                ),
+              ],
+            ),
+          );
+        }
+        return false;
+      }
+    } catch (e, stack) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao analisar a imagem.')),
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Erro'),
+            content: const Text(
+                'Erro ao analisar a imagem. Por favor, tente novamente ou contate o MapaZZZ.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Fechar'),
+              ),
+            ],
+          ),
         );
       }
       return false;
@@ -223,42 +223,6 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (_showOrientationDialog && !_isLandscape) {
-      return Scaffold(
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.screen_rotation,
-                  size: 80,
-                  color: Colors.blue,
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Por favor, vire o seu telefone para a horizontal (paisagem) para tirar a foto.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _showOrientationDialog =
-                          false; // Hide the dialog when button is pressed.
-                    });
-                  },
-                  child: const Text("Entendido"),
-                )
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Criar reportagem'),
@@ -294,7 +258,8 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
                       padding: const EdgeInsets.symmetric(
                           horizontal: 20, vertical: 10),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.8), // Ensure this is not null
+                        color: Colors.white
+                            .withOpacity(0.8), // Ensure this is not null
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
@@ -357,7 +322,8 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                        content: Text('Erro ao tirar a foto: $e')),
+                                        content:
+                                            Text('Erro ao tirar a foto: $e')),
                                   );
                                 }
                               } finally {
@@ -469,10 +435,13 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
         print("Nominatim API decodedResponse: $decodedResponse");
         if (decodedResponse != null &&
             decodedResponse['display_name'] != null) {
-// <-- Check for display_name
-          setState(() { // Ensure mounted before calling setState
-            _shippingAddress = decodedResponse['display_name']; // <-- Use display_name directly
-            print("Shipping address set to: $_shippingAddress"); // Log shipping address
+          // <-- Check for display_name
+          setState(() {
+            // Ensure mounted before calling setState
+            _shippingAddress = decodedResponse[
+                'display_name']; // <-- Use display_name directly
+            print(
+                "Shipping address set to: $_shippingAddress"); // Log shipping address
           });
           return _shippingAddress;
         } else {
@@ -481,7 +450,8 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                  content: Text('Nenhum endereço encontrado para a localização selecionada.')),
+                  content: Text(
+                      'Nenhum endereço encontrado para a localização selecionada.')),
             );
           }
           setState(() {
@@ -494,8 +464,8 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
         print(
             "Nominatim API request failed with status: ${response.statusCode}");
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('Falha ao obter o endereço.')));
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Falha ao obter o endereço.')));
         }
 
         setState(() {
@@ -507,8 +477,8 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
 // Handle any exceptions (e.g., network issues)
       print("Error fetching address: $e");
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Falha ao obter o endereço.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Falha ao obter o endereço.')));
       }
       setState(() {
         _shippingAddress = '';
@@ -533,7 +503,8 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
       }
     }
     if (permission == LocationPermission.deniedForever) {
-      return Future.error('As permissões de localização foram negadas permanentemente, não podemos solicitar permissões.');
+      return Future.error(
+          'As permissões de localização foram negadas permanentemente, não podemos solicitar permissões.');
     }
     return await Geolocator.getCurrentPosition();
   }
@@ -542,38 +513,138 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
   Future<int> _analyzeRiskLevel(
       String imageUrl, String title, String description) async {
     try {
-      final generativeModel = GenerativeModel(
-        model: 'gemini-1.5-flash-latest',
-        apiKey: _apiKey,
-      );
+      final apiUrl = 'https://risk-level-api.vercel.app/analyze-risk';
+      var request = http.MultipartRequest('POST', Uri.parse(apiUrl));
+      request.files
+          .add(await http.MultipartFile.fromPath('image', widget.imagePath));
+      request.fields['title'] = title;
+      request.fields['description'] = description;
 
-      // Prepare the image data for the AI.
-      Uint8List imageBytes = await File(widget.imagePath).readAsBytes();
-      final content = [
-        Content.multi([
-          TextPart(
-              "Analyze the image and report to assess the risk level of mosquito breeding, taking into account the following title: '$title' and description: '$description'. Rate the risk level on a scale of 1 to 3, where 1 is low risk, 2 is medium risk, and 3 is high risk.  Respond with only a single number (1, 2, or 3) indicating the risk level."),
-          DataPart('image/jpeg', imageBytes),
-        ]),
-      ];
+      var response = await request.send();
+      var responseBody = await response.stream.bytesToString();
 
-      // Generate content using the AI model.
-      final response = await generativeModel.generateContent(content);
-      final aiResponse = response.text?.trim();
-
-      // Parse the response to an integer
-      int? riskLevel = int.tryParse(aiResponse ?? '');
-      if (riskLevel != null && riskLevel >= 1 && riskLevel <= 3) {
-        return riskLevel;
+      if (response.statusCode == 200) {
+        final data = jsonDecode(responseBody);
+        int? riskLevel = data['riskLevel'];
+        if (riskLevel != null && riskLevel >= 1 && riskLevel <= 3) {
+          return riskLevel;
+        } else {
+          if (mounted) {
+            await showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Erro'),
+                content: const Text(
+                    'Erro ao analisar o nível de risco. Por favor, tente novamente ou contate o MapaZZZ.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Fechar'),
+                  ),
+                ],
+              ),
+            );
+          }
+          return 1;
+        }
       } else {
-        // Handle the error case where the AI doesn't return a valid number
-        print("AI returned invalid risk level: $aiResponse");
-        return 1; // Default to low risk
+        if (mounted) {
+          await showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Erro'),
+              content: const Text(
+                  'Erro ao analisar o nível de risco. Por favor, tente novamente ou contate o MapaZZZ.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Fechar'),
+                ),
+              ],
+            ),
+          );
+        }
+        return 1;
       }
     } catch (e) {
-      // Handle any exceptions (e.g., network issues, AI failure)
-      print("Error analyzing risk level: $e");
-      return 1; // Default to low risk in case of error
+      if (mounted) {
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Erro'),
+            content: const Text(
+                'Erro ao analisar o nível de risco. Por favor, tente novamente ou contate o MapaZZZ.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Fechar'),
+              ),
+            ],
+          ),
+        );
+      }
+      return 1;
+    }
+  }
+
+  Future<String> _generateSolution(String title, String description) async {
+    final apiUrl =
+        'https://solution-by-ai.vercel.app/api/generate-solution'; // Use your deployed endpoint
+    try {
+      // Read image as base64
+      final bytes = await File(widget.imagePath).readAsBytes();
+      final imageBase64 = base64Encode(bytes);
+
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'title': title,
+          'description': description,
+          'imageBase64': imageBase64,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['solution'] ?? "Não foi possível gerar uma solução.";
+      } else {
+        if (mounted) {
+          await showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Erro'),
+              content: const Text(
+                  'Erro ao gerar solução. Por favor, tente novamente ou contate o MapaZZZ.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Fechar'),
+                ),
+              ],
+            ),
+          );
+        }
+        return "Não foi possível gerar uma solução.";
+      }
+    } catch (e) {
+      if (mounted) {
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Erro'),
+            content: const Text(
+                'Erro ao gerar solução. Por favor, tente novamente ou contate o MapaZZZ.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Fechar'),
+              ),
+            ],
+          ),
+        );
+      }
+      return "Não foi possível gerar uma solução.";
     }
   }
 
@@ -605,27 +676,8 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
           int riskLevel = await _analyzeRiskLevel(
               imageUrl, title, description); // Get risk level from AI
 
-          // Initialize the generative AI model
-          final generativeModel = GenerativeModel(
-            model: 'gemini-1.5-flash-latest',
-            apiKey: _apiKey,
-          );
-
-          // Prepare the image data for the AI.
-          Uint8List imageBytes = await File(widget.imagePath).readAsBytes();
-          final content = [
-            Content.multi([
-              TextPart(
-                  "Analyze this report to provide a solution to prevent malaria, respond in portuguese. Title: $title, Description: $description.  Also analyze the image and what to fix in the image to avoid malaria"),
-              // The image is sent as a DataPart.
-              DataPart('image/jpeg', imageBytes),
-            ]),
-          ];
-
-          // Generate content using the AI model.
-          final response = await generativeModel.generateContent(content);
-          final aiSolution = response.text ??
-              "Não foi possível gerar uma solução."; // Provide a default value
+          final aiSolution = await _generateSolution(
+              title, description); // Provide a default value
 
           // Create the report and get the DocumentReference
           DocumentReference reportRef =
@@ -816,125 +868,168 @@ class CreateReportSuccessScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      // Remove Scaffold's direct background color, as the body will handle the gradient
       appBar: AppBar(
-        title: const Text('MapZzz'),
-        backgroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.black),
-        titleTextStyle:
-            const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        backgroundColor: const Color(
+            0xFFBE2425), // Darker red for AppBar to blend with gradient top
+        elevation: 0, // Removed shadow
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white), // Close icon
+          onPressed: () {
+            // Navigate back or close the screen
+            Navigator.pop(context);
+          },
+        ),
+        title: const Text(''), // Removed title
       ),
-      body: Padding(
-        //changed to padding
-        padding: EdgeInsets.only(top: 50),
-        child: Column(
-          //changed to column
-          //mainAxisAlignment: MainAxisAlignment.center, // Removed mainAxisAlignment
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.check_circle_outline,
-              color: Colors.red,
-              size: 120,
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Concluído.',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.red,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              "Reportagem criada com sucesso.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold), // Made message bold
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const <Widget>[
-                Text(
-                  'Você ganhou',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      body: Container(
+        // Wrap the content in a Container for the gradient
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFBE2425), // Dark Red (top)
+              Color(0xFFA6090A), // Even Darker Red (bottom)
+            ],
+          ),
+        ),
+        child: Center(
+          // Centered the entire content
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 20.0), // Added horizontal padding
+            child: Column(
+              mainAxisAlignment:
+                  MainAxisAlignment.center, // Centered content vertically
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Image container to match the illustration
+                Container(
+                  width: 400, // Adjust size as needed
+                  height: 400, // Adjust size as needed
+                  // Using a placeholder image for the illustration.
+                  // In a real app, you would load your asset image here.
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage(
+                          "assets/images/sucess.png"), // Placeholder for the illustration
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  child: const Align(
+                    alignment: Alignment(
+                        0.4, -0.8), // Adjust position of the checkmark
+                    child: Icon(
+                      Icons
+                          .check_circle, // Filled checkmark for the illustration
+                      color: Colors.white,
+                      size: 40,
+                    ),
+                  ),
                 ),
-                SizedBox(width: 8),
-                Icon(Icons.star_border, color: Colors.red, size: 20),
-                SizedBox(width: 4),
-                Text(
-                  '10 pontos',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                const SizedBox(height: 20),
+                const Text(
+                  '+30 pontos', // Changed to +30 pontos
+                  style: TextStyle(
+                    fontSize: 32, // Increased font size
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white, // Changed text color to white
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "Reportagem criada com sucesso!\nForam adicionados 30 pontos à sua carteira.", // Updated message
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.normal, // Adjusted font weight
+                    color: Colors.white, // Changed text color to white
+                  ),
+                ),
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: 300,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (report != null && report!.containsKey('id')) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ReportDetailPage(report: report!),
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text(
+                                  'Erro ao carregar detalhes da reportagem.')),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          Colors.white, // Changed button background to white
+                      foregroundColor: Colors.red, // Changed text color to red
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 30, vertical: 14),
+                      textStyle: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight
+                              .bold), // Increased font size and made bold
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25.0),
+                      ),
+                    ),
+                    child: const Text('Ver reportagem',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 13,
+                        )),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: 300,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MapZzzPage(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          Colors.transparent, // Transparent background
+                      foregroundColor: Colors.white, // White text
+                      side: const BorderSide(
+                          color: Colors.white, width: 2), // White border
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 30, vertical: 14),
+                      textStyle: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight
+                              .bold), // Increased font size and made bold
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25.0),
+                      ),
+                      elevation: 0, // No shadow for this button
+                    ),
+                    child: const Text('Voltar ao início',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                        )),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 40),
-            SizedBox(
-              width: 300, // Increased width of the button.
-              height: 50, // increased height
-              child: ElevatedButton(
-                onPressed: () {
-                  if (report != null && report!.containsKey('id')) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ReportDetailPage(report: report!),
-                      ),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content:
-                              Text('Erro ao carregar detalhes da reportagem.')),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
-                  textStyle:
-                      const TextStyle(fontSize: 18), // Increased font size
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25.0),
-                  ),
-                ),
-                child: const Text('Ver reportagem'),
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: 300, // Increased width of the button.
-              height: 50, // increased height
-              child: ElevatedButton(
-                onPressed: () {
-// Navigate back to the main map screen
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MapZzzPage(),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[700],
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
-                  textStyle:
-                      const TextStyle(fontSize: 18), // Increased font size
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25.0),
-                  ),
-                ),
-                child: const Text('Voltar ao início'),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

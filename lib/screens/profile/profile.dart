@@ -1,12 +1,8 @@
 import 'dart:async';
-import 'package:auth_bloc/api/firebase_api.dart';
-import 'package:auth_bloc/firebase_options.dart';
-import 'package:auth_bloc/logic/cubit/auth_cubit.dart';
-import 'package:auth_bloc/routing/routes.dart';
-import 'package:auth_bloc/screens/profile/rewards.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Explicitly import FirebaseAuth
+import 'package:intl/intl.dart'; // For date formatting
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,93 +12,80 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  late TextEditingController _firstNameController;
-  late TextEditingController _lastNameController;
-  late TextEditingController _usernameController; // Will be removed from UI
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
+  late TextEditingController _birthdayController;
 
-  bool _isUpdating = false; // State for showing loading during save
-  bool _isEditingInfo = false; // State for toggling edit mode
+  bool _isUpdating = false;
 
-  // State variables for dropdowns, since TextFormFields are not used for them when editing is enabled
-  String? _selectedBirthday;
   String? _selectedGender;
+  DateTime? _selectedBirthdayDate;
+
+  // Track if initial data has been loaded to prevent constant controller updates
+  bool _initialDataLoaded = false;
 
   @override
   void initState() {
     super.initState();
-    _firstNameController = TextEditingController();
-    _lastNameController = TextEditingController();
-    _usernameController =
-        TextEditingController(); // Still needed to read initial data
     _emailController = TextEditingController();
     _phoneController = TextEditingController();
+    _birthdayController = TextEditingController();
   }
 
   @override
   void dispose() {
-    _firstNameController.dispose();
-    _lastNameController.dispose();
-    _usernameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _birthdayController.dispose();
     super.dispose();
   }
 
-  // Function to handle updating profile information in Firestore
-  void _updateProfile(String userId) async {
-    if (!mounted) return; // Check if widget is still mounted
+  // Function to handle updating ALL profile information in Firestore
+  void _saveAllChanges(String userId) async {
+    if (!mounted) return;
 
     setState(() => _isUpdating = true);
     try {
-      // Get the current values from controllers and state variables
-      final String updatedFirstName = _firstNameController.text.trim();
-      final String updatedLastName = _lastNameController.text.trim();
-      final String updatedPhoneNumber = _phoneController.text.trim();
-      // Email is read-only, username is removed from UI, birthday and gender from state
-
-      // Prepare the data to update
       Map<String, dynamic> updateData = {
-        'name': '$updatedFirstName $updatedLastName'
-            .trim(), // Combine first and last name
-        'phoneNumber': updatedPhoneNumber,
-        // Only include birthday and gender if a value is selected
-        if (_selectedBirthday != null && _selectedBirthday != 'Selecione')
-          'birthday': _selectedBirthday,
-        if (_selectedGender != null && _selectedGender != 'Selecione')
-          'gender': _selectedGender,
-        // Note: Username is removed from UI and not updated here
-        // Note: Email is read-only and not updated here
+        'phoneNumber': _phoneController.text.trim(),
       };
 
+      // Handle Birthday: Save formatted date or delete field if "Não definido"
+      if (_selectedBirthdayDate != null) {
+        updateData['birthday'] =
+            DateFormat('dd/MM/yyyy').format(_selectedBirthdayDate!);
+      } else {
+        updateData['birthday'] = FieldValue.delete();
+      }
+
+      // Handle Gender: Save selected value or delete field if "Selecione"
+      if (_selectedGender != null && _selectedGender != 'Selecione') {
+        updateData['gender'] = _selectedGender;
+      } else {
+        updateData['gender'] = FieldValue.delete();
+      }
+
+      // Perform the update with merge option to only update specified fields
       await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
-          .update(updateData);
-
-      await Future.delayed(
-          const Duration(milliseconds: 500)); // Simulate a small network delay
+          .set(updateData, SetOptions(merge: true));
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              backgroundColor: Colors.green, // Use green for success
+              backgroundColor: Colors.green,
               content: Text('Perfil atualizado com sucesso!',
                   style: TextStyle(color: Colors.white))),
         );
-        // Exit editing mode after successful save
-        setState(() {
-          _isEditingInfo = false;
-        });
       }
     } catch (e) {
-      print('Error updating profile: $e'); // Log the error
+      print('Error saving profile changes: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              backgroundColor: Colors.redAccent, // Use red for error
-              content: Text('Erro ao atualizar perfil: $e',
+              backgroundColor: Colors.redAccent,
+              content: Text('Erro ao salvar perfil: $e',
                   style: TextStyle(color: Colors.white))),
         );
       }
@@ -122,14 +105,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } else if (points >= 70) {
       return 'Caçador de Mosquitos';
     } else {
-      return 'Novinho'; // 0 to 69 points
+      return 'Novinho(a)';
     }
   }
 
   // Function to update the rank in Firestore if it's different
   void _updateRankInFirestore(
       String userId, String currentRank, String? existingRank) {
-    // Check if the calculated rank is different from the one in the database
     if (currentRank != existingRank) {
       print(
           'Rank mismatch: App calculated "$currentRank", Firestore has "$existingRank". Updating Firestore.');
@@ -147,8 +129,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Function to get the correct image path based on the rank
   String _getImageForRank(String rank) {
+    // These asset paths should exist in your project for the images to load correctly.
+    // Replace with actual asset paths if different.
     switch (rank) {
-      case 'Novinho':
+      case 'Novinho(a)':
         return 'assets/images/nv.png';
       case 'Caçador de Mosquitos':
         return 'assets/images/cm.png';
@@ -157,14 +141,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
       case 'Herói da Comunidade':
         return 'assets/images/hc.png';
       default:
-        return 'https://cdn4.iconfinder.com/data/icons/glyphs/24/icons_user-512.png'; // Default
+        return 'assets/images/nv.png';
+    }
+  }
+
+  // Function to show date picker
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedBirthdayDate ?? DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Colors.red, // Header background color
+              onPrimary: Colors.white, // Header text color
+              onSurface: Colors.black, // Body text color
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red, // Button text color
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        _selectedBirthdayDate = picked;
+        _birthdayController.text = DateFormat('dd/MM/yyyy').format(picked);
+      });
+    } else {
+      // If the user cancels the picker, and a date was previously selected, clear it
+      // if (_selectedBirthdayDate != null) { // Only clear if it was previously set
+      //   setState(() {
+      //     _selectedBirthdayDate = null;
+      //     _birthdayController.text = 'Não definido';
+      //   });
+      // }
+      // Decided against this ^ for now, better to only clear explicitly.
+      // The current behavior is that if you cancel, the previous value remains.
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final authCubit = context.watch<AuthCubit>();
-    final user = authCubit.currentUser;
+    final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
       return Scaffold(
@@ -175,76 +201,81 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white, // White background
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back,
-              color: Colors.black), // Black back arrow
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
             Navigator.of(context).pop();
           },
         ),
-        title: const Text('',
-            style: TextStyle(color: Colors.black)), // Empty title
+        title: const Text('', style: TextStyle(color: Colors.black)),
         centerTitle: false,
       ),
-      body: FutureBuilder<DocumentSnapshot>(
-        future:
-            FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-                child: CircularProgressIndicator(
-                    color: Colors.black)); // Black indicator
+                child: CircularProgressIndicator(color: Colors.black));
           }
           if (snapshot.hasError) {
             return Center(
                 child: Text('Error: ${snapshot.error}',
-                    style: const TextStyle(color: Colors.black))); // Black text
+                    style: const TextStyle(color: Colors.black)));
           }
           if (!snapshot.hasData || !snapshot.data!.exists) {
+            // This is a crucial part. If the user document doesn't exist,
+            // you should create a default one to avoid "No user data found."
+            // For now, I'll keep the message, but consider creating it.
             return const Center(
-                child: Text('No user data found.',
-                    style: TextStyle(color: Colors.black))); // Black text
+                child: Text(
+                    'No user data found. Please ensure your user document exists.',
+                    style: TextStyle(color: Colors.black)));
           }
 
           var userData = snapshot.data!.data() as Map<String, dynamic>;
           final points = userData['points'] as int? ?? 0;
-          final progress = points /
-              300.0; // Progress towards 'Fiscal Confiável' (300 points) or adjust target if needed
-
-          // Determine the current rank based on points
           final String currentRank = _getRank(points);
-          // Get the existing rank from Firestore data
           final String? existingRank = userData['rank'] as String?;
 
-          // --- Add the rank check and update logic here ---
-          // Use addPostFrameCallback to avoid calling update during build
+          // Only update controllers and state when data is first loaded or significantly changes
+          if (!_initialDataLoaded) {
+            _emailController.text = userData['email'] ?? '';
+            _phoneController.text = userData['phoneNumber'] ?? '';
+
+            String? fetchedBirthday = userData['birthday'] as String?;
+            if (fetchedBirthday != null && fetchedBirthday.isNotEmpty) {
+              _birthdayController.text = fetchedBirthday;
+              try {
+                _selectedBirthdayDate =
+                    DateFormat('dd/MM/yyyy').parse(fetchedBirthday);
+              } catch (e) {
+                _selectedBirthdayDate = null;
+              }
+            } else {
+              _birthdayController.text = 'Não definido';
+              _selectedBirthdayDate = null;
+            }
+
+            String? fetchedGender = userData['gender'] as String?;
+            _selectedGender = fetchedGender != null && fetchedGender.isNotEmpty
+                ? fetchedGender
+                : 'Selecione';
+
+            _initialDataLoaded = true; // Mark as loaded
+          }
+
+          // Update rank in Firestore only if there's a discrepancy
+          // This should ideally happen only once when the data stabilizes
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _updateRankInFirestore(user.uid, currentRank, existingRank);
-
-            // Also populate text controllers and dropdown state once after data is fetched
-            if (_firstNameController.text.isEmpty && mounted) {
-              _firstNameController.text =
-                  userData['name']?.split(' ').first ?? '';
-              _lastNameController.text =
-                  userData['name']?.split(' ').last ?? '';
-              _usernameController.text =
-                  userData['username'] ?? ''; // Populate but hide in UI
-              _emailController.text = userData['email'] ?? '';
-              _phoneController.text = userData['phoneNumber'] ?? '';
-
-              // Populate dropdown state variables
-              _selectedBirthday = userData['birthday'] as String?;
-              _selectedGender = userData['gender'] as String?;
-
-              // Trigger a rebuild to show initial data in fields if not editing
-              setState(() {}); // Empty setState to trigger rebuild
-            }
           });
-          // --- End rank check and update logic ---
 
           return SingleChildScrollView(
             child: Padding(
@@ -254,224 +285,165 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   const SizedBox(height: 20),
                   Center(
-                    child: Stack(
-                      alignment: Alignment.bottomRight,
-                      children: [
-                        CircleAvatar(
-                          radius: 60,
-                          backgroundImage: AssetImage(
-                            _getImageForRank(currentRank),
-                          ),
-                          // Add the red border here
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.red, // Set border color to red
-                                width: 2.0, // Set the border width
-                              ),
-                            ),
-                          ),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                            color: Colors.red, width: 4), // Red border
+                      ),
+                      child: CircleAvatar(
+                        radius: 56,
+                        backgroundImage: AssetImage(
+                          _getImageForRank(currentRank),
                         ),
-                        // Edit profile picture icon - consider implementing this functionality
-                        // Container(
-                        //   decoration: BoxDecoration(
-                        //     shape: BoxShape.circle,
-                        //     color: Colors.red,
-                        //     border: Border.all(color: Colors.white, width: 1),
-                        //   padding: const EdgeInsets.all(4.0),
-                        //   child: const Icon(Icons.edit,
-                        //       color: Colors.white, size: 16),
-                        // ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.military_tech,
-                            color: Colors.black, size: 18),
-                        const SizedBox(width: 4),
-                        Text(
-                          currentRank, // Display the dynamic rank here
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16, // Slightly smaller font size
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 40.0),
-                    child: LinearProgressIndicator(
-                      value: progress.clamp(
-                          0.0, 1.0), // Progress value based on points
-                      backgroundColor: Colors.grey[300],
-                      valueColor:
-                          const AlwaysStoppedAnimation<Color>(Colors.red),
-                      minHeight: 6,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.star_border,
-                            color: Colors.black, size: 16),
-                        const SizedBox(width: 4),
-                        Text('${points} pontos', // Display actual points
-                            style:
-                                TextStyle(color: Colors.black, fontSize: 14)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => RewardsPage()));
-                      },
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.redeem, color: Colors.red, size: 16),
-                          SizedBox(width: 4),
-                          Text('Reivindicar prêmios',
-                              style:
-                                  TextStyle(color: Colors.black, fontSize: 14)),
-                        ],
+                        backgroundColor: Colors.transparent,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-
-                  // Profile Information Fields
-                  // First Name and Last Name are always shown
-                  _buildTextField("Primeiro nome", _firstNameController,
-                      labelTextColor: Colors.black87,
-                      readOnly: !_isEditingInfo), // Read-only when not editing
-                  _buildTextField("Sobrenome", _lastNameController,
-                      labelTextColor: Colors.black87,
-                      readOnly: !_isEditingInfo), // Read-only when not editing
-
-                  // Username, Birthday, and Gender are shown only when editing
-                  if (_isEditingInfo) ...[
-                    // Username field (now visible only in edit mode)
-                    _buildTextField("Nome de usuário", _usernameController,
-                        labelTextColor: Colors.black87,
-                        readOnly:
-                            !_isEditingInfo), // Read-only when not editing
-
-                    // Birthday Dropdown (now visible only in edit mode)
-                    _buildDropdown(
-                        "Aniversário",
-                        const [
-                          'Selecione',
-                          '01/01/1990',
-                          '15/05/1995'
-                        ], // Add actual items
-                        labelTextColor: Colors.black87,
-                        initialValue: _selectedBirthday, // Set initial value
-                        onChanged: (newValue) {
-                      setState(() {
-                        _selectedBirthday = newValue;
-                      });
-                    }, enabled: _isEditingInfo // Enable only when editing
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Text(
+                      userData['name'] ?? 'Elisandro Franco',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // "Meu Rank" title
+                  Center(
+                    child: Text(
+                      'Meu Rank',
+                      style: TextStyle(
+                        color: Colors.red[700],
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  // Rank icon + rank name
+                  Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.emoji_events,
+                            color: Colors.amber, size: 22), // Rank icon
+                        const SizedBox(width: 6),
+                        Text(
+                          currentRank,
+                          style: TextStyle(
+                            color: Colors.grey[800],
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                    // Gender Dropdown (now visible only in edit mode)
-                    _buildDropdown(
-                        "Gênero",
-                        const [
-                          'Selecione',
-                          'Masculino',
-                          'Feminino',
-                          'Outro'
-                        ], // Add actual items
-                        labelTextColor: Colors.black87,
-                        initialValue: _selectedGender, // Set initial value
-                        onChanged: (newValue) {
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // "Meus Pontos" title
+                  Center(
+                    child: Text(
+                      'Meus Pontos',
+                      style: TextStyle(
+                        color: Colors.red[700],
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  // Star icon + points
+                  Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.star,
+                            color: Colors.amber, size: 22), // Star icon
+                        const SizedBox(width: 6),
+                        Text(
+                          points.toString(),
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // E-mail Field (Read-only)
+                  _buildTextField(
+                    "E-mail",
+                    _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    readOnly: true,
+                    leadingIcon: Icons.email_outlined, // Email icon
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Telefone Field (Editable)
+                  _buildTextField(
+                    "Telefone",
+                    _phoneController,
+                    keyboardType: TextInputType.phone,
+                    prefixText: '(+244) ',
+                    readOnly: false,
+                    leadingIcon: Icons.phone_outlined, // Phone icon
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Gênero Dropdown
+                  _buildDropdown(
+                    "Gênero",
+                    const ['Selecione', 'Masculino', 'Feminino', 'Outro'],
+                    initialValue: _selectedGender,
+                    onChanged: (newValue) {
                       setState(() {
                         _selectedGender = newValue;
                       });
-                    }, enabled: _isEditingInfo // Enable only when editing
-                        ),
-                  ],
+                    },
+                  ),
+                  const SizedBox(height: 20),
 
-                  // Email and Phone Number are always shown
-                  _buildTextField("Email", _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      labelTextColor: Colors.black87,
-                      readOnly: true), // Email is always read-only
-                  _buildTextField("Número de telefone", _phoneController,
-                      keyboardType: TextInputType.phone,
-                      prefixText: '+244 ', // Corrected Angola country code
-                      suffixIcon: const Icon(Icons.arrow_drop_down,
-                          color: Colors.black87),
-                      labelTextColor: Colors.black87,
-                      readOnly: !_isEditingInfo), // Read-only when not editing
+                  // Data de nascimento (Date Picker Field)
+                  _buildTextField(
+                    "Data de nascimento",
+                    _birthdayController,
+                    readOnly:
+                        true, // Make it read-only so user taps to open picker
+                    leadingIcon: Icons.calendar_today_outlined, // Calendar icon
+                    onTap: () =>
+                        _selectDate(context), // Open date picker on tap
+                  ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 40),
 
-                  // Toggle Edit/Save Button
+                  // Salvar alterações Button
                   ElevatedButton(
                     onPressed: _isUpdating
-                        ? null // Disable button while updating
-                        : _isEditingInfo
-                            ? () => _updateProfile(user.uid) // Save Changes
-                            : () {
-                                // Change All Info
-                                setState(() {
-                                  _isEditingInfo = true;
-                                });
-                              },
+                        ? null
+                        : () => _saveAllChanges(
+                            user.uid), // Call the consolidated save function
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _isEditingInfo
-                          ? Colors.green
-                          : Colors.red, // Green for Save, Red for Edit
+                      backgroundColor: Colors.red,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5),
+                        borderRadius:
+                            BorderRadius.circular(10.0), // More rounded
                       ),
                     ),
                     child: _isUpdating
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : Text(
-                            _isEditingInfo
-                                ? 'Salvar Alterações'
-                                : 'Alterar Todas as Informações', // Button text changes
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 16)),
-                  ),
-
-                  const SizedBox(height: 16),
-                  // Logout Button (remains)
-                  Center(
-                    child: TextButton(
-                      onPressed: () async {
-                        await authCubit.signOut();
-                        if (context.mounted) {
-                          // Ensure any ongoing async operations are cancelled or handled
-                          // before navigating and removing routes.
-                          Navigator.of(context).pushNamedAndRemoveUntil(
-                            Routes.loginScreen,
-                            (route) => false,
-                          );
-                        }
-                      },
-                      child: const Text(
-                        'Logout',
-                        style: TextStyle(color: Colors.black87, fontSize: 16),
-                      ),
-                    ),
+                        : const Text('Salvar alterações',
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 16)),
                   ),
                 ],
               ),
@@ -482,98 +454,89 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // Helper widget for TextFormFields
   Widget _buildTextField(String labelText, TextEditingController controller,
       {TextInputType keyboardType = TextInputType.text,
       String? prefixText,
-      Widget? suffixIcon,
-      Color? labelTextColor,
-      bool readOnly = false // Added readOnly parameter
+      IconData? leadingIcon, // Added leadingIcon parameter
+      bool readOnly = false,
+      VoidCallback? onTap // Added onTap for date picker
       }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: keyboardType,
-        style: const TextStyle(color: Colors.black),
-        readOnly: readOnly, // Use the readOnly parameter
-        decoration: InputDecoration(
-          labelText: labelText,
-          labelStyle: TextStyle(color: labelTextColor ?? Colors.black87),
-          prefixText: prefixText,
-          suffixIcon: suffixIcon,
-          prefixStyle: const TextStyle(color: Colors.black),
-          enabledBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: Colors.black38),
-            borderRadius: BorderRadius.circular(5), // Rounded corners
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: Colors.black),
-            borderRadius: BorderRadius.circular(5), // Rounded corners
-          ),
-          // Add disabled border style if needed for clarity when readOnly is true
-          disabledBorder: OutlineInputBorder(
-            borderSide: const BorderSide(color: Colors.grey),
-            borderRadius: BorderRadius.circular(5),
-          ),
-          // You might want to add filled: true, fillColor: Colors.white if the container isn't providing a white background
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: const TextStyle(color: Colors.black),
+      readOnly: readOnly,
+      onTap: onTap, // Assign the onTap callback
+      decoration: InputDecoration(
+        labelText: labelText,
+        labelStyle: const TextStyle(color: Colors.black87),
+        prefixText: prefixText,
+        prefixIcon: leadingIcon != null
+            ? Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                child: Icon(leadingIcon, color: Colors.black54),
+              )
+            : null, // Use prefixIcon for leading icon
+        prefixIconConstraints:
+            BoxConstraints.tight(const Size(48, 24)), // Adjust icon spacing
+        prefixStyle: const TextStyle(color: Colors.black),
+        enabledBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Colors.black38),
+          borderRadius: BorderRadius.circular(10), // Rounded corners
         ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Colors.black),
+          borderRadius: BorderRadius.circular(10), // Rounded corners
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Colors.black38),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16, vertical: 12), // Adjust padding
       ),
     );
   }
 
+  // Helper widget for DropdownButtonFormField
   Widget _buildDropdown(String labelText, List<String> items,
-      {Color? labelTextColor,
-      String? initialValue, // Added initialValue parameter
-      ValueChanged<String?>? onChanged, // Added onChanged parameter
-      bool enabled = true // Added enabled parameter
-      }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            labelText,
-            style: TextStyle(color: labelTextColor ?? Colors.black87),
+      {String? initialValue, ValueChanged<String?>? onChanged}) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.black38),
+        borderRadius: BorderRadius.circular(10), // Rounded corners
+        color: Colors.white,
+      ),
+      child: DropdownButtonFormField<String>(
+        value: initialValue != null && items.contains(initialValue)
+            ? initialValue
+            : items
+                .first, // Set initial value, default to first item if not found
+        hint: Text(labelText, style: const TextStyle(color: Colors.black87)),
+        items: items.map((String item) {
+          return DropdownMenuItem<String>(
+            value: item,
+            child: Text(item, style: const TextStyle(color: Colors.black)),
+          );
+        }).toList(),
+        onChanged: onChanged,
+        dropdownColor: Colors.white,
+        style: const TextStyle(color: Colors.black),
+        decoration: InputDecoration(
+          border: InputBorder.none, // Remove default underline
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16, vertical: 12), // Adjust padding
+          icon: const Padding(
+            padding: EdgeInsets.only(left: 12.0),
+            child:
+                Icon(Icons.male_outlined, color: Colors.black54), // Gender icon
           ),
-          const SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              border: Border.all(
-                  color: enabled
-                      ? Colors.black38
-                      : Colors.grey), // Grey border when disabled
-              borderRadius: BorderRadius.circular(5),
-              color: Colors
-                  .white, // Ensure white background for dropdown container
-            ),
-            child: DropdownButtonFormField<String>(
-              value: initialValue, // Use the initialValue parameter
-              items: items.map((String item) {
-                return DropdownMenuItem<String>(
-                  value: item,
-                  child:
-                      Text(item, style: const TextStyle(color: Colors.black)),
-                );
-              }).toList(),
-              onChanged: enabled
-                  ? onChanged
-                  : null, // Use the onChanged parameter, disable when not enabled
-              dropdownColor: Colors.white, // White background for dropdown menu
-              style: const TextStyle(color: Colors.black),
-              decoration: const InputDecoration(
-                border: InputBorder.none, // Remove default underline
-                isDense: true, // Make it a bit more compact vertically
-                contentPadding:
-                    EdgeInsets.symmetric(vertical: 12), // Adjust padding
-                suffixIcon: Icon(Icons.arrow_drop_down, color: Colors.black87),
-              ),
-              iconDisabledColor:
-                  Colors.grey, // Grey out dropdown icon when disabled
-            ),
-          ),
-        ],
+        ),
+        icon: const Icon(Icons.arrow_drop_down,
+            color: Colors.black87), // Default dropdown arrow
+        iconDisabledColor: Colors.black38,
       ),
     );
   }

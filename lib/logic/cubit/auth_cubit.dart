@@ -145,7 +145,13 @@ class AuthCubit extends Cubit<AuthState> {
       );
 
       await _auth.currentUser!.updateDisplayName(name);
-      await _auth.currentUser!.sendEmailVerification();
+      try {
+        await _auth.currentUser!.sendEmailVerification();
+        print("Verification email sent successfully");
+      } catch (e) {
+        print("Error sending verification email: $e");
+        // Handle error
+      }
 
       User? user = userCredential.user;
       if (user != null) {

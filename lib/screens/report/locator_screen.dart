@@ -70,7 +70,8 @@ class _LocatorScreenState extends State<LocatorScreen> {
 
     if (permission == LocationPermission.deniedForever) {
       // Permissions are denied forever, handle appropriately.
-      _showPermissionDeniedDialog('Permissão de localização negada permanentemente.');
+      _showPermissionDeniedDialog(
+          'Permissão de localização negada permanentemente.');
       return Future.error(
           'Location permissions are permanently denied, we cannot request permissions.');
     }
@@ -104,7 +105,8 @@ class _LocatorScreenState extends State<LocatorScreen> {
 
   void _startCompassUpdates() {
     if (FlutterCompass.events != null) {
-      _compassSubscription = FlutterCompass.events!.listen((CompassEvent event) {
+      _compassSubscription =
+          FlutterCompass.events!.listen((CompassEvent event) {
         if (mounted && event.heading != null) {
           setState(() {
             // Magnetic North heading. Need to adjust for true north if desired
@@ -120,7 +122,7 @@ class _LocatorScreenState extends State<LocatorScreen> {
   void _updateArrowRotation() {
     if (_deviceHeading != null) {
       // Calculate the difference between the device's heading and the target bearing.
-      // We want the arrow to point towards the target relative to the device's current orientation.
+      // We want the arrow to point towards the target relative to the device's current .
       double relativeBearing = _bearingToReport - _deviceHeading!;
 
       // Normalize the angle to be between -180 and 180 degrees
@@ -145,7 +147,7 @@ class _LocatorScreenState extends State<LocatorScreen> {
 
     double y = math.sin(dLong) * math.cos(endLat);
     double x = math.cos(startLat) * math.sin(endLat) -
-               math.sin(startLat) * math.cos(endLat) * math.cos(dLong);
+        math.sin(startLat) * math.cos(endLat) * math.cos(dLong);
 
     // Convert to degrees and normalize to 0-360
     double bearing = (degrees(math.atan2(y, x)) + 360) % 360;
@@ -158,7 +160,8 @@ class _LocatorScreenState extends State<LocatorScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text("Permissão Necessária"),
-          content: Text(message + "\nPor favor, habilite as permissões de localização e bússola nas configurações do seu dispositivo."),
+          content: Text(message +
+              "\nPor favor, habilite as permissões de localização e bússola nas configurações do seu dispositivo."),
           actions: <Widget>[
             TextButton(
               child: Text("OK"),
@@ -191,7 +194,10 @@ class _LocatorScreenState extends State<LocatorScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Colors.red.shade50, Colors.red.shade100], // Soft red gradient background
+            colors: [
+              Colors.red.shade50,
+              Colors.red.shade100
+            ], // Soft red gradient background
           ),
         ),
         child: Center(
@@ -200,16 +206,19 @@ class _LocatorScreenState extends State<LocatorScreen> {
             children: <Widget>[
               // Distance display
               Card(
-                margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                margin:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 elevation: 5,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15)),
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
                   child: Column(
                     children: [
                       Text(
                         'Distância para o Ponto:',
-                        style: TextStyle(fontSize: 20, color: Colors.grey.shade700),
+                        style: TextStyle(
+                            fontSize: 20, color: Colors.grey.shade700),
                       ),
                       SizedBox(height: 10),
                       Text(
@@ -233,7 +242,8 @@ class _LocatorScreenState extends State<LocatorScreen> {
                   children: [
                     Text(
                       'Apontando para a direção da reportagem',
-                      style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
+                      style:
+                          TextStyle(fontSize: 16, color: Colors.grey.shade700),
                       textAlign: TextAlign.center,
                     ),
                     SizedBox(height: 20),
@@ -254,7 +264,8 @@ class _LocatorScreenState extends State<LocatorScreen> {
                     SizedBox(height: 20),
                     Text(
                       'Aguardando dados de localização e/ou bússola...',
-                      style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
+                      style:
+                          TextStyle(fontSize: 16, color: Colors.grey.shade700),
                       textAlign: TextAlign.center,
                     ),
                   ],

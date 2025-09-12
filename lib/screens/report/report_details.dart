@@ -7,7 +7,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'dart:ui' as ui;
 import 'package:cached_network_image/cached_network_image.dart'; // Import cached_network_image
+import 'package:sensors_plus/sensors_plus.dart';
+import 'dart:async';
 
 class ReportDetailPage extends StatefulWidget {
   final Map<String, dynamic> report;
@@ -724,305 +727,371 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
           final currentRiskLevel = latestReportData['riskLevel'] as int? ?? 1;
 
           // Build the UI using the latest data
-          return SingleChildScrollView(
-            padding: EdgeInsets.zero,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                SizedBox(height: 43),
-                Stack(
-                  children: [
-                    Hero(
-                      // Ensure imageUrl is not null, provide fallback
-                      tag: 'reportImage-${widget.report['imageUrl']}',
-                      child: CachedNetworkImage(
-                        imageUrl: widget.report['imageUrl'] ??
-                            'https://via.placeholder.com/150',
-                        width: double.infinity,
-                        height: 250,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          width: double.infinity,
-                          height: 250,
-                          color: Colors.grey[300],
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                                color: Colors.black54),
+          return Stack(
+            children: [
+              SingleChildScrollView(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    SizedBox(height: 43),
+                    Stack(
+                      children: [
+                        Hero(
+                          // Ensure imageUrl is not null, provide fallback
+                          tag: 'reportImage-${widget.report['imageUrl']}',
+                          child: CachedNetworkImage(
+                            imageUrl: widget.report['imageUrl'] ??
+                                'https://via.placeholder.com/150',
+                            width: double.infinity,
+                            height: 250,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              width: double.infinity,
+                              height: 250,
+                              color: Colors.grey[300],
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                    color: Colors.black54),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              width: double.infinity,
+                              height: 250,
+                              color: Colors.grey[300],
+                              child: const Icon(Icons.broken_image,
+                                  size: 50, color: Colors.grey),
+                            ),
                           ),
                         ),
-                        errorWidget: (context, url, error) => Container(
-                          width: double.infinity,
-                          height: 250,
-                          color: Colors.grey[300],
-                          child: const Icon(Icons.broken_image,
-                              size: 50, color: Colors.grey),
+                        Positioned(
+                          top: 16,
+                          left: 16,
+                          child: CircleAvatar(
+                            backgroundColor: Colors.white,
+                            radius: 18,
+                            child: IconButton(
+                              icon: Icon(Icons.arrow_back, color: Colors.black),
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              iconSize: 20,
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                    Positioned(
-                      top: 16,
-                      left: 16,
-                      child: CircleAvatar(
-                        backgroundColor: Colors.white,
-                        radius: 18,
-                        child: IconButton(
-                          icon: Icon(Icons.arrow_back, color: Colors.black),
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          iconSize: 20,
-                        ),
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            widget.report['title'] ??
+                                'No Title', // Use fallback
+                            style: TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(Icons.location_on, color: Colors.red),
+                              SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  widget.report['location'] ??
+                                      'Localização Desconhecida', // Use fallback
+                                  softWrap: true,
+                                ),
+                              ),
+                              Spacer(),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          // Button to view location on map (using WebView)
+                          TextButton.icon(
+                            onPressed: () async {
+                              // as they are static report creation data.
+                              final double? latitude =
+                                  widget.report['latitude'];
+                              final double? longitude =
+                                  widget.report['longitude'];
+
+                              if (latitude != null && longitude != null) {
+                                // Construct a standard Google Maps URL for a marker
+                                final String googleMapsUrlString =
+                                    'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';
+                                final Uri googleMapsUrl =
+                                    Uri.parse(googleMapsUrlString);
+                                if (await canLaunchUrl(googleMapsUrl)) {
+                                  await launchUrl(googleMapsUrl,
+                                          mode: LaunchMode.externalApplication)
+                                      .catchError((e) {
+                                    print("Error launching Google Maps: $e");
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text(
+                                              'Não foi possível abrir a pesquisa de hospitais no mapa.')),
+                                    );
+                                  });
+                                } else {
+                                  print("Could not launch URL: $googleMapsUrl");
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text(
+                                            'Não foi possível abrir o URL de pesquisa de hospitais.')),
+                                  );
+                                }
+                              } else {
+                                _showErrorDialog('Erro',
+                                    'Coordenadas da reportagem não disponíveis.');
+                              }
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.red,
+                            ),
+                            icon: Icon(Icons.map),
+                            label: Text('Ver no mapa'),
+                          ),
+                          // Optional: Button to launch native Google Maps app
+                          // TextButton.icon(
+                          //   onPressed: _launchGoogleMaps,
+                          //   style: TextButton.styleFrom(
+                          //     foregroundColor: Colors.red,
+                          //   ),
+                          //   icon: Icon(Icons.map),
+                          //   label: Text('Abrir no Google Maps App'), // Different label
+                          // ),
+
+                          SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Text('Criado por: ',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold)),
+                              SizedBox(width: 13),
+                              _isLoadingUser
+                                  ? SizedBox(
+                                      // Show loader while fetching user data
+                                      width: 24, // Adjust size as needed
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2),
+                                    )
+                                  : CircleAvatar(
+                                      // Outer circle for the red border
+                                      radius:
+                                          12, // Slightly larger than the inner avatar
+                                      backgroundColor: Colors.red,
+                                      child: CircleAvatar(
+                                        radius:
+                                            10, // Inner avatar for the image
+                                        backgroundColor: Colors.grey[
+                                            200], // Background while image loads or if error
+                                        backgroundImage: AssetImage(
+                                          _getAvatarAssetPath(
+                                              _userRank), // Use the helper function
+                                        ),
+                                        // Optional: Add error handling for AssetImage if needed
+                                        onBackgroundImageError:
+                                            (exception, stackTrace) {
+                                          print(
+                                              'Error loading asset image: $exception');
+                                          // Optionally display a fallback icon or color
+                                        },
+                                      ),
+                                    ),
+                              SizedBox(width: 13),
+                              _isLoadingUser
+                                  ? const Text(
+                                      'Carregando...') // Show loading text for name
+                                  : Text(_userName ??
+                                      'Usuário Desconhecido'), // Display fetched name
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Text('Nível de risco: ',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold)),
+                              // Use the latest risk level from the stream if it could change, otherwise use the initial one
+                              // Assuming risk level is static after report creation, using widget.report['riskLevel'] is fine,
+                              // but using currentRiskLevel from the stream is safer if it *might* change.
+                              _buildRiskLevelIcons(currentRiskLevel),
+                              SizedBox(width: 8),
+                              Text(_getRiskLevelText(currentRiskLevel)),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(Icons.people, color: Colors.grey),
+                              SizedBox(width: 4),
+                              // Display the real-time confirmation count from the stream
+                              Text(
+                                '$currentNoConfirmation',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              SizedBox(width: 8),
+                              Text('Número de confirmações',
+                                  style: TextStyle(color: Colors.grey)),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(Icons.people, color: Colors.green),
+                              SizedBox(width: 4),
+                              // Display the real-time resolved count from the stream
+                              Text(
+                                '$currentNoResolved',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              SizedBox(width: 8),
+                              Text('Número de confirmações de resolvidos',
+                                  style: TextStyle(color: Colors.green)),
+                            ],
+                          ),
+                          SizedBox(height: 16),
+                          // Confirmation Button
+                          ElevatedButton(
+                            // Button is disabled if the user has already confirmed (_hasUserConfirmed)
+                            onPressed:
+                                _hasUserConfirmed ? null : _confirmReport,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _hasUserConfirmed
+                                  ? Colors.red[100]
+                                  : Colors.white,
+                              foregroundColor: Colors.black,
+                              side: BorderSide(color: Colors.red),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child:
+                                // Show loading indicator while confirmation is in progress
+                                _isLoadingConfirmationStatus
+                                    ? const SizedBox(
+                                        height: 24,
+                                        width: 24,
+                                        child: CircularProgressIndicator(
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Colors.red),
+                                        ),
+                                      )
+                                    : Text(_hasUserConfirmed
+                                        ? 'Já Confirmado' // Button text changes if confirmed
+                                        : 'Confirmar reportagem'),
+                          ),
+                          SizedBox(height: 8),
+                          // Locator Button
+                          TextButton.icon(
+                            onPressed: () async {
+                              // Check for gyroscope availability
+                              bool hasGyroscope = false;
+                              StreamSubscription<GyroscopeEvent>? sub;
+                              try {
+                                sub = gyroscopeEvents.listen((event) {
+                                  hasGyroscope = true;
+                                  sub?.cancel();
+                                });
+                                // Wait a short time to see if any event comes
+                                await Future.delayed(
+                                    const Duration(milliseconds: 300));
+                                await sub.cancel();
+                              } catch (_) {
+                                hasGyroscope = false;
+                              }
+
+                              if (!hasGyroscope) {
+                                // Show dialog if no gyroscope
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Sem Giroscópio'),
+                                    content: const Text(
+                                        'Seu dispositivo não possui giroscópio.'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(),
+                                        child: const Text('OK'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                return;
+                              }
+
+                              // Use the coordinates from the original widget.report map
+                              final double? latitude =
+                                  widget.report['latitude'];
+                              final double? longitude =
+                                  widget.report['longitude'];
+
+                              if (latitude != null && longitude != null) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => LocatorScreen(
+                                      reportLatitude: latitude,
+                                      reportLongitude: longitude,
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                _showErrorDialog('Erro',
+                                    'Coordenadas da reportagem não disponíveis.');
+                              }
+                            },
+                            icon: Icon(Icons.explore),
+                            label: Text('Abrir Localizador',
+                                style: TextStyle(fontSize: 16)),
+                          ),
+                          SizedBox(height: 16),
+                          Text('Descrição:',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold)),
+                          SizedBox(height: 8),
+                          // Use description from latest data, fall back to initial or default
+                          Text(latestReportData['description'] ??
+                              widget.report['description'] ??
+                              'Nenhuma descrição fornecida.'),
+                          SizedBox(height: 16),
+                          Text('Solução criada por IA:',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold)),
+                          SizedBox(height: 8),
+                          // Use solution from latest data, fall back to initial or default
+                          Text(latestReportData['solutionAi'] ??
+                              widget.report['solutionAi'] ??
+                              'Nenhuma solução fornecida.'),
+                          SizedBox(
+                              height: 120), // Space for the floating button
+                        ],
                       ),
                     ),
                   ],
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        widget.report['title'] ?? 'No Title', // Use fallback
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: ClipRRect(
+                  child: BackdropFilter(
+                    filter: ui.ImageFilter.blur(sigmaX: 4.0, sigmaY: 4.0),
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(
+                          16, 20, 16, 30), // Padding for the button
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.7),
                       ),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.location_on, color: Colors.red),
-                          SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              widget.report['location'] ??
-                                  'Localização Desconhecida', // Use fallback
-                              softWrap: true,
-                            ),
-                          ),
-                          Spacer(),
-                        ],
-                      ),
-                      SizedBox(height: 8),
-                      // Button to view location on map (using WebView)
-                      TextButton.icon(
-                        onPressed: () async {
-                          // as they are static report creation data.
-                          final double? latitude = widget.report['latitude'];
-                          final double? longitude = widget.report['longitude'];
-
-                          if (latitude != null && longitude != null) {
-                            // Construct a standard Google Maps URL for a marker
-                            final String googleMapsUrlString =
-                                'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';
-                            final Uri googleMapsUrl =
-                                Uri.parse(googleMapsUrlString);
-                            if (await canLaunchUrl(googleMapsUrl)) {
-                              await launchUrl(googleMapsUrl,
-                                      mode: LaunchMode.externalApplication)
-                                  .catchError((e) {
-                                print("Error launching Google Maps: $e");
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text(
-                                          'Não foi possível abrir a pesquisa de hospitais no mapa.')),
-                                );
-                              });
-                            } else {
-                              print("Could not launch URL: $googleMapsUrl");
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text(
-                                        'Não foi possível abrir o URL de pesquisa de hospitais.')),
-                              );
-                            }
-                          } else {
-                            _showErrorDialog('Erro',
-                                'Coordenadas da reportagem não disponíveis.');
-                          }
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.red,
-                        ),
-                        icon: Icon(Icons.map),
-                        label: Text('Ver no mapa'),
-                      ),
-                      // Optional: Button to launch native Google Maps app
-                      // TextButton.icon(
-                      //   onPressed: _launchGoogleMaps,
-                      //   style: TextButton.styleFrom(
-                      //     foregroundColor: Colors.red,
-                      //   ),
-                      //   icon: Icon(Icons.map),
-                      //   label: Text('Abrir no Google Maps App'), // Different label
-                      // ),
-
-                      SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Text('Criado por: ',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                          SizedBox(width: 13),
-                          _isLoadingUser
-                              ? SizedBox(
-                                  // Show loader while fetching user data
-                                  width: 24, // Adjust size as needed
-                                  height: 24,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : CircleAvatar(
-                                  // Outer circle for the red border
-                                  radius:
-                                      12, // Slightly larger than the inner avatar
-                                  backgroundColor: Colors.red,
-                                  child: CircleAvatar(
-                                    radius: 10, // Inner avatar for the image
-                                    backgroundColor: Colors.grey[
-                                        200], // Background while image loads or if error
-                                    backgroundImage: AssetImage(
-                                      _getAvatarAssetPath(
-                                          _userRank), // Use the helper function
-                                    ),
-                                    // Optional: Add error handling for AssetImage if needed
-                                    onBackgroundImageError:
-                                        (exception, stackTrace) {
-                                      print(
-                                          'Error loading asset image: $exception');
-                                      // Optionally display a fallback icon or color
-                                    },
-                                  ),
-                                ),
-                          SizedBox(width: 13),
-                          _isLoadingUser
-                              ? const Text(
-                                  'Carregando...') // Show loading text for name
-                              : Text(_userName ??
-                                  'Usuário Desconhecido'), // Display fetched name
-                        ],
-                      ),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Text('Nível de risco: ',
-                              style: TextStyle(fontWeight: FontWeight.bold)),
-                          // Use the latest risk level from the stream if it could change, otherwise use the initial one
-                          // Assuming risk level is static after report creation, using widget.report['riskLevel'] is fine,
-                          // but using currentRiskLevel from the stream is safer if it *might* change.
-                          _buildRiskLevelIcons(currentRiskLevel),
-                          SizedBox(width: 8),
-                          Text(_getRiskLevelText(currentRiskLevel)),
-                        ],
-                      ),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.people, color: Colors.grey),
-                          SizedBox(width: 4),
-                          // Display the real-time confirmation count from the stream
-                          Text(
-                            '$currentNoConfirmation',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          SizedBox(width: 8),
-                          Text('Número de confirmações',
-                              style: TextStyle(color: Colors.grey)),
-                        ],
-                      ),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.people, color: Colors.green),
-                          SizedBox(width: 4),
-                          // Display the real-time resolved count from the stream
-                          Text(
-                            '$currentNoResolved',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          SizedBox(width: 8),
-                          Text('Número de confirmações de resolvidos',
-                              style: TextStyle(color: Colors.green)),
-                        ],
-                      ),
-                      SizedBox(height: 16),
-                      // Confirmation Button
-                      ElevatedButton(
-                        // Button is disabled if the user has already confirmed (_hasUserConfirmed)
-                        onPressed: _hasUserConfirmed ? null : _confirmReport,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _hasUserConfirmed
-                              ? Colors.red[100]
-                              : Colors.white,
-                          foregroundColor: Colors.black,
-                          side: BorderSide(color: Colors.red),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child:
-                            // Show loading indicator while confirmation is in progress
-                            _isLoadingConfirmationStatus
-                                ? const SizedBox(
-                                    height: 24,
-                                    width: 24,
-                                    child: CircularProgressIndicator(
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.red),
-                                    ),
-                                  )
-                                : Text(_hasUserConfirmed
-                                    ? 'Já Confirmado' // Button text changes if confirmed
-                                    : 'Confirmar reportagem'),
-                      ),
-                      SizedBox(height: 8),
-                      // Locator Button
-                      TextButton.icon(
-                        onPressed: () {
-                          // Use the coordinates from the original widget.report map
-                          final double? latitude = widget.report['latitude'];
-                          final double? longitude = widget.report['longitude'];
-
-                          if (latitude != null && longitude != null) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => LocatorScreen(
-                                  reportLatitude: latitude,
-                                  reportLongitude: longitude,
-                                ),
-                              ),
-                            );
-                          } else {
-                            _showErrorDialog('Erro',
-                                'Coordenadas da reportagem não disponíveis.');
-                          }
-                        },
-                        icon: Icon(Icons.explore),
-                        label: Text('Abrir Localizador',
-                            style: TextStyle(fontSize: 16)),
-                      ),
-                      SizedBox(height: 16),
-                      Text('Descrição:',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 8),
-                      // Use description from latest data, fall back to initial or default
-                      Text(latestReportData['description'] ??
-                          widget.report['description'] ??
-                          'Nenhuma descrição fornecida.'),
-                      SizedBox(height: 16),
-                      Text('Solução criada por IA:',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 8),
-                      // Use solution from latest data, fall back to initial or default
-                      Text(latestReportData['solutionAi'] ??
-                          widget.report['solutionAi'] ??
-                          'Nenhuma solução fornecida.'),
-                      SizedBox(height: 24),
-                      // Report as Resolved Button
-                      SizedBox(
+                      child: SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          // Button is disabled if the user has already reported as resolved (_hasUserResolved)
                           onPressed:
                               _hasUserResolved ? null : _reportAsResolved,
                           style: ElevatedButton.styleFrom(
@@ -1035,30 +1104,27 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          child:
-                              // Show loading indicator while resolved action is in progress
-                              _isLoadingResolvedStatus
-                                  ? const SizedBox(
-                                      height: 24,
-                                      width: 24,
-                                      child: CircularProgressIndicator(
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                                Colors.white),
-                                      ),
-                                    )
-                                  : Text(
-                                      _hasUserResolved
-                                          ? 'Reportado como Resolvido' // Button text changes if resolved
-                                          : 'Reportar como resolvido',
-                                      style: TextStyle(fontSize: 18)),
+                          child: _isLoadingResolvedStatus
+                              ? const SizedBox(
+                                  height: 24,
+                                  width: 24,
+                                  child: CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                  ),
+                                )
+                              : Text(
+                                  _hasUserResolved
+                                      ? 'Reportado como Resolvido'
+                                      : 'Reportar como resolvido',
+                                  style: TextStyle(fontSize: 18)),
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           );
         },
       ),

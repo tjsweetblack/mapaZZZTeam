@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 class MapExplanationPage extends StatelessWidget {
@@ -9,6 +8,12 @@ class MapExplanationPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            Navigator.pop(context); // Navigate back to the previous screen
+          },
+        ),
         title: const Text('Explicação do Mapa',
             style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
@@ -71,8 +76,12 @@ class MapExplanationPage extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Icon(Icons.location_pin,
-                      color: Color.fromARGB(255, 0, 0, 0), size: 30),
+                  // Blue circle for "Sua Localização"
+                  const CircleAvatar(
+                    radius: 15,
+                    backgroundColor: Colors.blue,
+                    child: SizedBox(), // empty child for solid color
+                  ),
                   const SizedBox(width: 10),
                   const Text('Sua Localização:',
                       style: TextStyle(fontSize: 16, color: Colors.black87)),

@@ -23,9 +23,6 @@ import 'routing/routes.dart';
 import 'theming/colors.dart';
 import 'package:flutter_inappwebview/src/in_app_webview/in_app_webview.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:flutter_localization/flutter_localization.dart';
-
-
 
 late String initialRoute;
 
@@ -74,7 +71,10 @@ Future<void> main() async {
       },
     );
     // Wait for the completer to complete before running the app
-    await completer.future;
+    // Add a timeout to avoid hanging forever
+    await completer.future.timeout(const Duration(seconds: 5), onTimeout: () {
+      initialRoute = Routes.loginScreen;
+    });
   }
 
   runApp(
@@ -366,32 +366,40 @@ class _MyAppState extends State<MyApp> {
         splitScreenMode: true,
         builder: (_, child) {
           return _isLoading
-            ? const SplashScreen()
-            : BlocBuilder<LanguageCubit, LanguageState>(
-                builder: (context, state) {
-                  return MaterialApp(
-                    locale: state.locale,
-                    localizationsDelegates: AppLocalizations.localizationsDelegates,
-                    supportedLocales: AppLocalizations.supportedLocales,
-                    localeResolutionCallback: (locale, supportedLocales) {
-                      return supportedLocales.contains(locale) ? locale : const Locale('en');
-                    },
-                    builder: DevicePreview.appBuilder,
-                    onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
-                    theme: ThemeData(
-                      useMaterial3: true,
-                      textSelectionTheme: const TextSelectionThemeData(
-                        cursorColor: ColorsManager.mainBlue,
-                        selectionColor: Color.fromARGB(188, 36, 124, 255),
-                        selectionHandleColor: ColorsManager.mainBlue,
+              ? const SplashScreen()
+              : BlocBuilder<LanguageCubit, LanguageState>(
+                  builder: (context, state) {
+                    return MaterialApp(
+                      locale: state.locale,
+                      localizationsDelegates:
+                          AppLocalizations.localizationsDelegates,
+                      supportedLocales: AppLocalizations.supportedLocales,
+                      localeResolutionCallback: (locale, supportedLocales) {
+                        return supportedLocales.contains(locale)
+                            ? locale
+                            : const Locale('en');
+                      },
+                      builder: DevicePreview.appBuilder,
+                      onGenerateTitle: (context) =>
+                          AppLocalizations.of(context)!.appTitle,
+                      theme: ThemeData(
+                        useMaterial3: true,
+                        textSelectionTheme: const TextSelectionThemeData(
+                          cursorColor: ColorsManager.mainBlue,
+                          selectionColor: Color.fromARGB(188, 36, 124, 255),
+                          selectionHandleColor: ColorsManager.mainBlue,
+                        ),
+                        fontFamily: 'Poppins',
+                        // You can customize other theme properties here as well.
+                        primarySwatch: Colors.blue,
+                        visualDensity: VisualDensity.adaptivePlatformDensity,
                       ),
-                    ),
-                    onGenerateRoute: widget.router.generateRoute,
-                    debugShowCheckedModeBanner: false,
-                    initialRoute: initialRoute,
-                  );
-                },
-              );
+                      onGenerateRoute: widget.router.generateRoute,
+                      debugShowCheckedModeBanner: false,
+                      initialRoute: initialRoute,
+                    );
+                  },
+                );
         },
       ),
     );

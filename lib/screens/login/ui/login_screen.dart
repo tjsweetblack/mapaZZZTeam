@@ -1,12 +1,8 @@
 import 'package:auth_bloc/helpers/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:google_sign_in/google_sign_in.dart'; // Import Google Sign In
-import 'package:firebase_auth/firebase_auth.dart';
-
 import '../../../logic/cubit/auth_cubit.dart';
 import '../../../routing/routes.dart';
-import '../../../theming/styles.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,12 +14,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  // Add GoogleSignIn instance
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-      clientId:
-          '734479508053-a9sa98cmb27dljbj2h08r1omsocc2pij.apps.googleusercontent.com');
+  bool _isPasswordVisible = false; // Add this variable
 
   @override
   void initState() {
@@ -77,32 +68,16 @@ class _LoginScreenState extends State<LoginScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 50), // Add top spacing
-            const Text(
-              "Bem vindo de volta !",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              "Vamos fazer login para continuar explorando",
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 30),
             Image.asset('assets/images/logo/logo.png', height: 144),
             const SizedBox(height: 30),
             const Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                "Email ou telefone",
+                "E-Mail",
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
                 ),
               ),
             ),
@@ -110,58 +85,63 @@ class _LoginScreenState extends State<LoginScreen> {
             TextField(
               controller: _emailController,
               decoration: InputDecoration(
-                hintText: "Entrar com email",
-                prefixIcon: const Icon(Icons.email_outlined),
+                hintText: "example@email.domain",
+                suffixIcon: const Icon(Icons.email_outlined),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
+                  borderRadius: BorderRadius.circular(10.0),
                 ),
               ),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: InputDecoration(
-                hintText: "Entrar com senha",
-                prefixIcon: const Icon(Icons.lock_outline),
-                suffixIcon: const Icon(Icons.remove_red_eye_outlined),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "Senha",
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
                 ),
               ),
             ),
             const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Checkbox(
-                      value: false, // Replace with your logic
-                      onChanged: (bool? value) {},
-                    ),
-                    const Text(
-                      "Mantenha-me conectado",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-                TextButton(
+            TextField(
+              controller: _passwordController,
+              obscureText: !_isPasswordVisible, // Toggle visibility
+              decoration: InputDecoration(
+                hintText: "************",
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _isPasswordVisible
+                        ? Icons.visibility // Show icon when visible
+                        : Icons.visibility_off, // Hide icon when not visible
+                  ),
                   onPressed: () {
-                    context.pushNamed(Routes.forgetScreen);
+                    setState(() {
+                      _isPasswordVisible = !_isPasswordVisible; // Toggle visibility
+                    });
                   },
-                  child: const Text(
-                    "Esqueceu a senha?",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () {
+                  context.pushNamed(Routes.forgetScreen);
+                },
+                child: const Text(
+                  "Esqueci a minha senha",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.red,
                   ),
                 ),
-              ],
+              ),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
@@ -176,7 +156,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   textStyle: const TextStyle(fontSize: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(110.0),
+                    borderRadius: BorderRadius.circular(10.0),
                   ),
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white),
@@ -187,29 +167,56 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  "Não tem uma conta?",
-                  style: TextStyle(
-                    color: Colors.grey,
-                  ),
+            GestureDetector(
+              onTap: () {
+                context.pushNamed(Routes.signupScreen);
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(10.0),
                 ),
-                GestureDetector(
-                  onTap: () {
-                    context.pushNamed(Routes.signupScreen);
-                  },
-                  child: const Text(
-                    " Inscreva-se aqui.",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Ainda não tem uma conta?",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            "Com o MapaZZZ poderá proteger a si e a sua família",
+                            style: TextStyle(
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                    const Icon(
+                      Icons.arrow_forward,
+                      color: Colors.black,
+                    ),
+                  ],
                 ),
-              ],
-            ),            
+              ),
+            ),
+            const SizedBox(height: 100),
+            const Text(
+              "2025 Sudoz®",
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 12,
+              ),
+            ),
           ],
         ),
       ),
