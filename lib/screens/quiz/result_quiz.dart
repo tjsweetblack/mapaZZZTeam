@@ -43,17 +43,17 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
     'en': {
       'points_earned_text': 'You earned {points} points',
       'retake_quiz_button': 'Retake quiz',
-      'back_to_start_button': 'Back to start',
+      // 'back_to_start_button': 'Back to start', // This is no longer used
     },
     'pt': {
       'points_earned_text': 'ganhaste {points} pontos',
       'retake_quiz_button': 'Refazer quiz',
-      'back_to_start_button': 'Voltar ao início',
+      // 'back_to_start_button': 'Voltar ao início', // This is no longer used
     },
     'ja': {
       'points_earned_text': '{points} ポイントを獲得しました',
       'retake_quiz_button': 'クイズをやり直す',
-      'back_to_start_button': '最初に戻る',
+      // 'back_to_start_button': '最初に戻る', // This is no longer used
     },
   };
 
@@ -65,9 +65,11 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
 
   // Modified to handle the point interpolation dynamically.
   String _getTranslatedString(String key) {
-    final language = _localizedStrings[widget.languageCode] ?? _localizedStrings['en']!;
+    final language =
+        _localizedStrings[widget.languageCode] ?? _localizedStrings['en']!;
     final String baseString = language[key] ?? key;
-    return baseString.replaceFirst('{points}', widget.totalPointsEarned.toString());
+    return baseString.replaceFirst(
+        '{points}', widget.totalPointsEarned.toString());
   }
 
   Future<void> _updateUserPoints(int pointsToAdd) async {
@@ -78,7 +80,8 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
     }
 
     try {
-      final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+      final userDocRef =
+          FirebaseFirestore.instance.collection('users').doc(user.uid);
 
       await FirebaseFirestore.instance.runTransaction((transaction) async {
         final userDoc = await transaction.get(userDocRef);
@@ -102,7 +105,8 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
 
         transaction.update(userDocRef, {'points': newTotalPoints});
 
-        print('User ${user.uid} points updated: $currentPoints + $pointsToAdd = $newTotalPoints');
+        print(
+            'User ${user.uid} points updated: $currentPoints + $pointsToAdd = $newTotalPoints');
       }).catchError((error) {
         print('Transaction failed: $error');
       });
@@ -119,17 +123,6 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
       backgroundColor: Colors.red[700], // Full screen red background
       body: Stack(
         children: [
-          // Close button at top left
-          Positioned(
-            top: 50.0,
-            left: 20.0,
-            child: IconButton(
-              icon: const Icon(Icons.close, color: Colors.white, size: 30),
-              onPressed: () {
-                Navigator.of(context).popUntil((route) => route.isFirst); // Go back to main screen
-              },
-            ),
-          ),
           Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -160,7 +153,8 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 18.0,
-                      color: Colors.white.withOpacity(0.8), // Slightly transparent white
+                      color: Colors.white
+                          .withOpacity(0.8), // Slightly transparent white
                     ),
                   ),
                   const SizedBox(height: 60.0),
@@ -182,7 +176,8 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
                         backgroundColor: Colors.white, // White background
                         padding: const EdgeInsets.symmetric(vertical: 18),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10.0), // Rounded corners
+                          borderRadius:
+                              BorderRadius.circular(10.0), // Rounded corners
                         ),
                         elevation: 0, // No shadow for this button
                       ),
@@ -197,20 +192,6 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
                     ),
                   ),
                   const SizedBox(height: 15.0),
-
-                  // "Voltar ao inicio" text button (now localized)
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).popUntil((route) => route.isFirst);
-                    },
-                    child: Text(
-                      translatedStrings('back_to_start_button'),
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8), // Slightly transparent white
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -220,4 +201,3 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
     );
   }
 }
-

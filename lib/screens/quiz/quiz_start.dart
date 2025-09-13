@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 // Example: class MalariaQuizScreen extends StatelessWidget { final String language; const MalariaQuizScreen({super.key, required this.language}); ... }
 import 'package:auth_bloc/screens/quiz/quiz_page.dart';
 
-
 class QuizScreen extends StatelessWidget {
   const QuizScreen({super.key});
 
@@ -45,9 +44,27 @@ class QuizScreen extends StatelessWidget {
                 color: Colors.black87,
               ),
             ),
-            const SizedBox(height: 50),
-
-            // Replace the image with three language selection buttons
+            const SizedBox(height: 10),
+            const Text(
+              'Let\'s improve your knowledge about malaria!',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: Colors.black54,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'マラリアに関する知識を深めましょう！',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: Colors.black54,
+              ),
+            ),
+            const SizedBox(height: 30),
             Column(
               children: [
                 SizedBox(
@@ -57,7 +74,8 @@ class QuizScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => MalariaQuizScreen(language: 'en'),
+                          builder: (context) =>
+                              const MalariaQuizScreen(language: 'en'),
                         ),
                       );
                     },
@@ -87,7 +105,8 @@ class QuizScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => MalariaQuizScreen(language: 'pt'),
+                          builder: (context) =>
+                              const MalariaQuizScreen(language: 'pt'),
                         ),
                       );
                     },
@@ -117,7 +136,8 @@ class QuizScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => MalariaQuizScreen(language: 'ja'),
+                          builder: (context) =>
+                              const MalariaQuizScreen(language: 'ja'),
                         ),
                       );
                     },
@@ -141,7 +161,6 @@ class QuizScreen extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: 20),
             const Text(
               'Tens 15 minutos para responder a 10 perguntas e receber pontos por cada resposta certa.',
@@ -151,8 +170,6 @@ class QuizScreen extends StatelessWidget {
                 color: Colors.black54,
               ),
             ),
-            
-            // The "Começar" button and its spacing have been removed.
             const SizedBox(height: 40),
           ],
         ),
