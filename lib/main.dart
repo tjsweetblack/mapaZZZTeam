@@ -81,6 +81,7 @@ Future<void> main() async {
     DevicePreview(
       enabled: true, // kDebugMode,
       builder: (context) => MyApp(router: AppRouter()),
+      isToolbarVisible: false,
     ),
   );
 }

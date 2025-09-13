@@ -170,6 +170,24 @@ class QuizScreen extends StatelessWidget {
                 color: Colors.black54,
               ),
             ),
+            const SizedBox(height: 10),
+            const Text(
+              'You have 15 minutes to answer 10 questions and get points for each correct answer.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.black54,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              '15分以内に10問に答え、正解するごとにポイントを獲得できます。',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.black54,
+              ),
+            ),
             const SizedBox(height: 40),
           ],
         ),
