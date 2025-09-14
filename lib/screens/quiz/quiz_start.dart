@@ -14,12 +14,8 @@ class QuizScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
+        automaticallyImplyLeading:
+            false, // This removes the automatic back button
         title: const Text(
           'Quiz',
           style: TextStyle(
