@@ -2,11 +2,11 @@ import 'package:auth_bloc/screens/quiz/quiz_start.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 // Dummy imports for screens to make the code runnable
 // In your actual project, ensure these paths are correct
-import 'package:auth_bloc/screens/main_screen.dart'; // Assuming this is MapZzzPage's location
-import 'package:auth_bloc/screens/quiz/quiz_page.dart'; // Assuming this is MalariaQuizScreen's location
 
 // Dummy implementations to satisfy imports, replace with your actual ones if not present
 class MapZzzPage extends StatelessWidget {
@@ -61,6 +61,66 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
   void initState() {
     super.initState();
     _updateUserPoints(widget.totalPointsEarned);
+  }
+
+  // Function to send quiz count data to the API
+  Future<void> _sendQuizCountToAPI() async {
+    try {
+      // Use the correct API URL
+      final url = Uri.parse('https://contagemapi-sable.vercel.app/historico');
+
+      // Get current date in YYYY-MM-DD format
+      final currentDate = DateTime.now();
+      final formattedDate =
+          '${currentDate.year}-${currentDate.month.toString().padLeft(2, '0')}-${currentDate.day.toString().padLeft(2, '0')}';
+
+      // Map language codes to the format expected by the API
+      String apiLanguageCode;
+      switch (widget.languageCode) {
+        case 'ja':
+          apiLanguageCode = 'jp';
+          break;
+        case 'pt':
+          apiLanguageCode = 'pt';
+          break;
+        case 'en':
+        default:
+          apiLanguageCode = 'en';
+          break;
+      }
+
+      final requestBody = {
+        'lingua': apiLanguageCode,
+        'data': formattedDate,
+        'rank': widget.correctAnswersCount.toString(),
+      };
+
+      print('Sending quiz count to API: $requestBody');
+
+      final body = jsonEncode(requestBody);
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: body,
+      );
+
+      print('API Response Status: ${response.statusCode}');
+      print('API Response Body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('Quiz count successfully sent to API');
+      } else {
+        print('Failed to send quiz count. Status code: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        // Don't throw error to avoid breaking the user experience
+      }
+    } catch (e) {
+      print('Error sending quiz count to API: $e');
+      // Don't rethrow the error to avoid breaking the user experience
+    }
   }
 
   // Modified to handle the point interpolation dynamically.
@@ -163,7 +223,10 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
+                        // Send quiz count to API before navigating
+                        await _sendQuizCountToAPI();
+
                         Navigator.pop(context);
                         Navigator.pushReplacement(
                           context,
