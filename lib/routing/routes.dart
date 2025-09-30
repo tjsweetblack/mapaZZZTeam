@@ -10,4 +10,5 @@ class Routes {
   static const String myCustomBurgersScreen = 'myCustomBurgersScreen';
   static const String onboardingScreen = 'onboardingScreen';
   static const String splashScreen = 'splashScreen';
+  static const String quizStart = 'quizStart';
 }

@@ -13,16 +13,18 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
+import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
+import 'package:google_maps_flutter_ios/google_maps_flutter_ios.dart';
 import 'routing/app_router.dart';
 import 'routing/routes.dart';
 import 'theming/colors.dart';
-import 'package:flutter_inappwebview/src/in_app_webview/in_app_webview.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 late String initialRoute;
 
@@ -40,6 +42,23 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Lock app to portrait mode
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
+
+  // Initialize Google Maps Flutter for both platforms
+  final GoogleMapsFlutterPlatform mapsImplementation =
+      GoogleMapsFlutterPlatform.instance;
+  if (mapsImplementation is GoogleMapsFlutterAndroid) {
+    // Initialize for Android
+    mapsImplementation.useAndroidViewSurface = true;
+    mapsImplementation.initializeWithRenderer(AndroidMapRenderer.latest);
+  } else if (mapsImplementation is GoogleMapsFlutterIOS) {
+    // Initialize for iOS - the API key should be set in Info.plist
+    // No additional initialization required for iOS as it uses Info.plist
+  }
 
   await Future.wait([
     Firebase.initializeApp(
@@ -79,7 +98,7 @@ Future<void> main() async {
 
   runApp(
     DevicePreview(
-      enabled: true, // kDebugMode,
+      enabled: false, // kDebugMode,
       builder: (context) => MyApp(router: AppRouter()),
       isToolbarVisible: false,
     ),
@@ -165,7 +184,17 @@ class _MyAppState extends State<MyApp> {
   Future<void> _checkProximityAndNotify() async {
     print("initiated proximity function");
     try {
-      Position position = await _getCurrentLocation();
+      Position position = await _getCurrentLocation().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException(
+              'Location request timed out', const Duration(seconds: 10));
+        },
+      );
+
+      print(
+          "User location: LatLng(${position.latitude}, ${position.longitude})");
+
       int highestRiskLevel = 0; // Initialize risk level to 0 (no risk)
 
       for (var zone in _riskZones) {
@@ -202,10 +231,30 @@ class _MyAppState extends State<MyApp> {
               "Warning: Zone data missing expected keys (latitude, longitude, riskLevel).");
         }
       }
+
+      String riskMessage;
+      switch (highestRiskLevel) {
+        case 1:
+          riskMessage = 'Está numa zona de baixo risco.';
+          break;
+        case 2:
+          riskMessage = 'Está numa zona de médio risco.';
+          break;
+        case 3:
+          riskMessage = 'Está numa zona de alto risco.';
+          break;
+        default:
+          riskMessage = 'Está numa zona sem risco.';
+          break;
+      }
+
+      print("Risk level changed: $riskMessage");
       _showProximityNotification(highestRiskLevel);
     } catch (e) {
       print("Error checking proximity: $e");
-      // Handle location errors gracefully
+      // Handle location errors gracefully - don't let this crash the app
+      // Set a default state
+      print("Risk level changed: Não foi possível determinar o risco.");
     }
   }
 
@@ -248,57 +297,72 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> setupPushNotifications() async {
-    FirebaseMessaging messaging = FirebaseMessaging.instance;
+    try {
+      FirebaseMessaging messaging = FirebaseMessaging.instance;
 
-    NotificationSettings settings = await messaging.requestPermission(
-      alert: true,
-      announcement: false,
-      badge: true,
-      carPlay: false,
-      criticalAlert: false,
-      provisional: false,
-      sound: true,
-    );
+      NotificationSettings settings = await messaging.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
 
-    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      print('User granted permission');
-    } else if (settings.authorizationStatus ==
-        AuthorizationStatus.provisional) {
-      print('User granted provisional permission');
-    } else {
-      print('User declined or has not accepted permission');
-    }
-
-    FirebaseMessaging.instance.getToken().then((token) {
-      print("FCM Token: $token");
-      // Save this token to your server if needed
-    });
-
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Got a message whilst in the foreground!');
-      print('Message data: ${message.data}');
-      if (message.notification != null) {
-        print('Message also contained a notification: ${message.notification}');
-        FirebaseApi().showLocalNotification(message);
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        print('User granted permission');
+      } else if (settings.authorizationStatus ==
+          AuthorizationStatus.provisional) {
+        print('User granted provisional permission');
       } else {
-        print('Received a data-only message in foreground.');
-        FirebaseApi().showLocalNotification(message);
+        print('User declined or has not accepted permission');
       }
-    });
 
-    FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      print('Message clicked!');
-      print('Message data: ${message.data}');
-      // Handle navigation
-    });
+      // Handle token retrieval with proper error handling
+      try {
+        String? token = await FirebaseMessaging.instance.getToken();
+        if (token != null) {
+          print("FCM Token: $token");
+          // Save this token to your server if needed
+        } else {
+          print("FCM Token is null - this is normal in iOS simulator");
+        }
+      } catch (tokenError) {
+        print("Error getting FCM token (normal in simulator): $tokenError");
+        // This is expected in iOS simulator - don't treat as fatal error
+      }
 
-    FirebaseMessaging.instance.getInitialMessage().then((message) {
-      if (message != null) {
-        print(
-            'App launched from terminated state by notification: ${message.data}');
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        print('Got a message whilst in the foreground!');
+        print('Message data: ${message.data}');
+        if (message.notification != null) {
+          print(
+              'Message also contained a notification: ${message.notification}');
+          FirebaseApi().showLocalNotification(message);
+        } else {
+          print('Received a data-only message in foreground.');
+          FirebaseApi().showLocalNotification(message);
+        }
+      });
+
+      FirebaseMessaging.onMessageOpenedApp.listen((message) {
+        print('Message clicked!');
+        print('Message data: ${message.data}');
         // Handle navigation
-      }
-    });
+      });
+
+      FirebaseMessaging.instance.getInitialMessage().then((message) {
+        if (message != null) {
+          print(
+              'App launched from terminated state by notification: ${message.data}');
+          // Handle navigation
+        }
+      });
+    } catch (e) {
+      print("Error setting up push notifications (normal in simulator): $e");
+      // Don't let Firebase messaging errors crash the app
+    }
   }
 
   Future<void> _initLocalNotifications() async {
@@ -316,34 +380,94 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    _initializeApp();
-    _initLocalNotifications();
-    setupPushNotifications();
-    _startLocationMonitoring(); // Start monitoring after initialization
+    print("MyApp initState started");
+    _initializeAppSequentially();
+  }
+
+  Future<void> _initializeAppSequentially() async {
+    try {
+      print("Starting sequential initialization...");
+
+      // Initialize local notifications first
+      await _initLocalNotifications();
+      print("Local notifications initialized");
+
+      // Initialize Firebase messaging (with error handling)
+      await setupPushNotifications();
+      print("Push notifications setup completed");
+
+      // Initialize the main app
+      await _initializeApp();
+      print("Main app initialization completed");
+
+      // Start location monitoring after everything else is ready
+      _startLocationMonitoring();
+      print("Location monitoring started");
+
+      print("All initialization completed successfully");
+    } catch (e) {
+      print("Error during sequential initialization: $e");
+      // Ensure the app still shows even if initialization fails
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   Future<void> _initializeApp() async {
-    // Fetch risk zones first
-    _riskZones = await _fetchRiskZones();
+    try {
+      print("Starting main app initialization...");
 
-    // Now that zones are fetched, perform the initial proximity check
-    await _checkProximityAndNotify();
+      // Fetch risk zones first
+      print("Fetching risk zones...");
+      _riskZones = await _fetchRiskZones();
+      print("Risk zones fetched: ${_riskZones.length} zones");
 
-    // Delay for splash screen (adjust as needed)
-    await Future.delayed(const Duration(seconds: 3));
+      // Now that zones are fetched, perform the initial proximity check
+      print("Starting initial proximity check...");
+      await _checkProximityAndNotify();
+      print("Initial proximity check completed");
 
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
+      // Delay for splash screen (adjust as needed)
+      print("Waiting for splash screen duration...");
+      await Future.delayed(const Duration(seconds: 3));
+      print("Splash screen duration completed");
+
+      if (mounted) {
+        print("Setting app to loaded state...");
+        setState(() {
+          _isLoading = false;
+        });
+        print("App is now in loaded state - should show main screen");
+      } else {
+        print("Warning: Widget not mounted when trying to set loaded state");
+      }
+    } catch (e) {
+      print("Error during app initialization: $e");
+      // Even if there's an error, we should still show the main app
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        print("App set to loaded state despite error");
+      }
     }
   }
 
   void _startLocationMonitoring() {
-    // The initial check is now done in _initializeApp after fetching zones.
-    _locationCheckTimer = Timer.periodic(const Duration(hours: 1), (timer) {
-      _checkProximityAndNotify();
-    });
+    try {
+      print("Starting location monitoring timer...");
+      // The initial check is now done in _initializeApp after fetching zones.
+      _locationCheckTimer = Timer.periodic(const Duration(hours: 1), (timer) {
+        print("Periodic location check triggered");
+        _checkProximityAndNotify();
+      });
+      print("Location monitoring timer started successfully");
+    } catch (e) {
+      print("Error starting location monitoring: $e");
+    }
   }
 
   @override

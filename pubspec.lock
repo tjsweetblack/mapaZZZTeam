@@ -702,7 +702,7 @@ packages:
     source: hosted
     version: "2.18.1"
   google_maps_flutter_ios:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: google_maps_flutter_ios
       sha256: ca02463b19a9abc7d31fcaf22631d021d647107467f741b917a69fa26659fd75

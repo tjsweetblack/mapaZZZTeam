@@ -66,6 +66,7 @@ dependencies:
   flutter_localization: ^0.3.3
   intl: ^0.20.2
   google_maps_flutter: ^2.12.3
+  google_maps_flutter_ios: ^2.15.5
   sensors_plus: ^4.0.2
 
 dev_dependencies:

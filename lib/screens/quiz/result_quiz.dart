@@ -190,9 +190,9 @@ class _QuizResultScreenState extends State<QuizResultScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                   // Placeholder for the success image
-                  const Text(
-                    '🎉',
-                    style: TextStyle(fontSize: 100),
+                  Image.asset(
+                    'assets/images/sucess.png',
+                    height: 200,
                   ),
                   const SizedBox(height: 30.0),
 

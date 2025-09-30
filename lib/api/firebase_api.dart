@@ -17,37 +17,51 @@ class FirebaseApi {
 
   // Function to initialize notification settings (Firebase & Local)
   Future<void> initNotifications() async {
-    // --- Firebase Messaging Initialization ---
-    // Request permission from user
-    await _firebaseMessaging.requestPermission();
-    // Fetch the FCM token
-    final token = await _firebaseMessaging.getToken();
-    // Print the token
-    print('FCM Token: $token');
+    try {
+      // --- Firebase Messaging Initialization ---
+      // Request permission from user
+      await _firebaseMessaging.requestPermission();
 
-    // Add the token to Firestore
-    if (token != null) {
-      await _addTokenToFirestore(token);
-    }
-
-    // Configure handling for foreground messages
-    // This listener receives messages when the app is open and in the foreground
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Got a message whilst in the foreground!');
-      print('Message data: ${message.data}');
-
-      // ** Call the local notification function to display the notification **
-      if (message.notification != null) {
-        print('Message also contained a notification: ${message.notification}');
-        showLocalNotification(
-            message); // Call the method to show the local notification
-      } else {
-        // Handle data-only messages in foreground if needed
-        print('Received a data-only message in foreground.');
-        // You might still want to show a local notification based on data
-        // showDataNotification(message.data); // Example: Implement this if needed
+      // Fetch the FCM token with error handling
+      try {
+        final token = await _firebaseMessaging.getToken();
+        if (token != null) {
+          // Print the token
+          print('FCM Token: $token');
+          // Add the token to Firestore
+          await _addTokenToFirestore(token);
+        } else {
+          print('FCM Token is null - this is normal in iOS simulator');
+        }
+      } catch (tokenError) {
+        print('Error getting FCM token (normal in simulator): $tokenError');
+        // Continue initialization even if token fails
       }
-    });
+
+      // Configure handling for foreground messages
+      // This listener receives messages when the app is open and in the foreground
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        print('Got a message whilst in the foreground!');
+        print('Message data: ${message.data}');
+
+        // ** Call the local notification function to display the notification **
+        if (message.notification != null) {
+          print(
+              'Message also contained a notification: ${message.notification}');
+          showLocalNotification(
+              message); // Call the method to show the local notification
+        } else {
+          // Handle data-only messages in foreground if needed
+          print('Received a data-only message in foreground.');
+          // You might still want to show a local notification based on data
+          // showDataNotification(message.data); // Example: Implement this if needed
+        }
+      });
+    } catch (e) {
+      print(
+          'Error initializing Firebase notifications (normal in simulator): $e');
+      // Don't let Firebase initialization errors crash the app
+    }
 
     // Configure handling for messages that open the app from background
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
@@ -176,7 +190,6 @@ class FirebaseApi {
 
     // Define the platform-specific details
     AndroidNotificationDetails? androidDetails;
-    DarwinNotificationDetails? iOSDetails;
 
     if (android != null) {
       androidDetails = AndroidNotificationDetails(

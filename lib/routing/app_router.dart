@@ -2,6 +2,7 @@ import 'package:auth_bloc/main.dart';
 import 'package:auth_bloc/screens/login/ui/phone.dart';
 import 'package:auth_bloc/screens/main_screen.dart';
 import 'package:auth_bloc/screens/profile/profile.dart';
+import 'package:auth_bloc/screens/quiz/quiz_start.dart';
 import 'package:auth_bloc/screens/splash_screen/splash.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -63,6 +64,14 @@ class AppRouter {
           builder: (_) => BlocProvider.value(
             value: authCubit,
             child: const LoginScreen(),
+          ),
+        );
+
+      case Routes.quizStart:
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider.value(
+            value: authCubit,
+            child: const QuizScreen(),
           ),
         );
 

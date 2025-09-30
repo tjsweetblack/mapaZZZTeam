@@ -165,11 +165,13 @@ class _MalariaQuizScreenState extends State<MalariaQuizScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize:
               MainAxisSize.min, // Make row only as big as its children
-          children: const [
-            Icon(Icons.auto_awesome,
-                color: Colors.red), // Placeholder for spark icon
-            SizedBox(width: 8),
-            Text(
+          children: [
+            Image.asset(
+              'assets/images/logo/logo4.png',
+              height: 45,
+            ), // Placeholder for spark icon
+            const SizedBox(width: 8),
+            const Text(
               'MapaZZZ Quiz',
               style: TextStyle(
                 color: Colors.black,

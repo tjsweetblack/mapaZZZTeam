@@ -10,10 +10,46 @@ class EPaldudismoScreen extends StatefulWidget {
 
 class _EPaldudismoScreenState extends State<EPaldudismoScreen> {
   final TextEditingController _symptomsController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final FocusNode _textFieldFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _textFieldFocus.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (_textFieldFocus.hasFocus) {
+      // Delay to allow keyboard to fully appear
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted && _textFieldFocus.hasFocus) {
+          _scrollToButton();
+        }
+      });
+    }
+  }
+
+  void _scrollToButton() {
+    if (!mounted || !_scrollController.hasClients) return;
+
+    // Calculate scroll position to show the button area
+    final screenHeight = MediaQuery.of(context).size.height;
+    final targetScrollPosition =
+        screenHeight * 0.4; // Scroll to show button area
+
+    _scrollController.animateTo(
+      targetScrollPosition,
+      duration: const Duration(milliseconds: 500), // Longer duration
+      curve: Curves.easeOutCubic,
+    );
+  }
 
   @override
   void dispose() {
     _symptomsController.dispose();
+    _scrollController.dispose();
+    _textFieldFocus.dispose();
     super.dispose();
   }
 
@@ -21,26 +57,33 @@ class _EPaldudismoScreenState extends State<EPaldudismoScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          // Back button
-          Positioned(
-            top: 50.0,
-            left: 20.0,
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
-              onPressed: () {
-                Navigator.pop(context);
-              },
-            ),
+      resizeToAvoidBottomInset: true,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+      ),
+      body: SingleChildScrollView(
+        controller: _scrollController,
+        padding: const EdgeInsets.symmetric(horizontal: 30.0),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: MediaQuery.of(context).size.height -
+                MediaQuery.of(context).viewInsets.bottom -
+                kToolbarHeight -
+                MediaQuery.of(context).padding.top,
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 30.0),
+          child: IntrinsicHeight(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Spacer(flex: 2),
+                const SizedBox(height: 20),
 
                 // Icon
                 Container(
@@ -52,7 +95,7 @@ class _EPaldudismoScreenState extends State<EPaldudismoScreen> {
                   ),
                   child: Center(
                     child: Icon(
-                      Icons.electric_meter, // Use a suitable icon from Flutter's library
+                      Icons.electric_meter,
                       size: 60,
                       color: Colors.red,
                     ),
@@ -88,7 +131,7 @@ class _EPaldudismoScreenState extends State<EPaldudismoScreen> {
 
                 // Text Input Field
                 Container(
-                  height: 200, // Adjusted height to match the image
+                  height: 180,
                   decoration: BoxDecoration(
                     color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(10.0),
@@ -97,7 +140,8 @@ class _EPaldudismoScreenState extends State<EPaldudismoScreen> {
                     padding: const EdgeInsets.all(16.0),
                     child: TextFormField(
                       controller: _symptomsController,
-                      maxLines: null, // Allows the text to wrap indefinitely
+                      focusNode: _textFieldFocus,
+                      maxLines: null,
                       expands: true,
                       textAlignVertical: TextAlignVertical.top,
                       decoration: const InputDecoration(
@@ -110,7 +154,7 @@ class _EPaldudismoScreenState extends State<EPaldudismoScreen> {
                   ),
                 ),
 
-                const Spacer(flex: 1),
+                const SizedBox(height: 40),
 
                 // Button
                 ElevatedButton(
@@ -119,8 +163,8 @@ class _EPaldudismoScreenState extends State<EPaldudismoScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) =>
-                              MalariaResultScreen(symptomsDescription: symptoms)),
+                          builder: (context) => MalariaResultScreen(
+                              symptomsDescription: symptoms)),
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -150,11 +194,11 @@ class _EPaldudismoScreenState extends State<EPaldudismoScreen> {
                   ),
                 ),
 
-                const Spacer(flex: 1),
+                const SizedBox(height: 20),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

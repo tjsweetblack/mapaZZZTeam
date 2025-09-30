@@ -575,8 +575,10 @@ class _MapZzzPageState extends State<MapZzzPage> {
                     );
                   },
                   child: CircleAvatar(
-                      backgroundColor: Colors.white,
-                      child: Icon(Icons.camera_alt, color: Colors.red)),
+                      radius: 30,
+                      backgroundColor: Colors.red,
+                      child: Icon(Icons.camera_alt,
+                          color: Colors.white, size: 30)),
                 ),
               ],
             ),
