@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "734479508053",
+    "project_id": "mapzzz-62a4f",
+    "storage_bucket": "mapzzz-62a4f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:734479508053:android:92fcf0cc0302f8a35daadc",
+        "android_client_info": {
+          "package_name": "com.example.auth_bloc"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAou4aPcGMlsl_l5pGogFB4B9Z9Oq03tzw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

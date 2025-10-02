@@ -1,0 +1,58 @@
+# Nome do seu workflow. Aparecerá na aba "Actions" do GitHub.
+name: Build Flutter Android
+
+# Define quando este workflow deve ser executado.
+on:
+  # Executa toda vez que você envia código para a branch 'main'.
+  push:
+    branches:
+      - main
+  # Permite que você inicie o build manualmente pela interface do GitHub.
+  workflow_dispatch:
+
+jobs:
+  # Define um "trabalho" chamado 'build'. Você pode ter vários trabalhos.
+  build:
+    # A máquina virtual que será usada. 'ubuntu-latest' é a mais comum.
+    runs-on: ubuntu-latest
+
+    # Os passos que serão executados na máquina virtual.
+    steps:
+      # 1. Clona o seu repositório para a máquina virtual.
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      # 2. Configura o ambiente Java (necessário para o build do Android).
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # 3. Configura o ambiente Flutter.
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          # A versão do Flutter já está definida aqui, no lugar correto.
+          flutter-version: '3.32.8' 
+          channel: 'stable'
+          cache: true
+
+      # 4. Baixa as dependências do Flutter.
+      - name: Baixar dependências do Flutter
+        run: flutter pub get
+
+      # 5. Limpa o projeto (boa prática).
+      - name: Limpar projeto
+        run: flutter clean
+
+      # 6. Executa o build do APK.
+      - name: Construir APK
+        run: flutter build apk --release
+
+      # 7. Faz o upload do APK gerado como um "artefato".
+      - name: Fazer upload do APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk

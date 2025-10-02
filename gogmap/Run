@@ -1,0 +1,31 @@
+AIzaSyBAO_rST4zn3HeQNFHDCXaczAwLMQ0VROg gemini api key
+
+/*MarkerLayer(
+
+markers: [
+
+Marker(
+
+point:
+
+_currentLocation!, // Use the fetched location for the marker
+
+width: 30,
+
+height: 30,
+
+child: const Icon(
+
+Icons.location_on,
+
+color: Colors.deepPurple,
+
+size: 30,
+
+),
+
+),
+
+],
+
+),*/
