@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -73,14 +72,21 @@ class _MalariaResultScreenState extends State<MalariaResultScreen> {
       } else {
         setState(() {
           probabilityResult = 'N/A';
-          explanation = 'Erro ao obter resposta da API.';
+          explanation =
+              'Erro ao analisar, por favor contacte o Team info@ma-pa-zzz.tech';
+          errorMessage =
+              'Erro ao analisar, por favor contacte o Team info@ma-pa-zzz.tech';
           isLoading = false;
           _resultColor = Colors.grey;
         });
       }
     } catch (e) {
       setState(() {
-        errorMessage = 'Erro ao obter a probabilidade: $e';
+        probabilityResult = 'N/A';
+        explanation =
+            'Erro ao analisar, por favor contacte o Team info@ma-pa-zzz.tech';
+        errorMessage =
+            'Erro ao analisar, por favor contacte o Team info@ma-pa-zzz.tech';
         isLoading = false;
         _resultColor = Colors.grey;
       });

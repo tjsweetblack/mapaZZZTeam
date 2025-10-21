@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'epaludismo_result_screen.dart'; // Assuming epaludismo_result_screen.dart is the file name
 
 class EPaldudismoScreen extends StatefulWidget {
@@ -12,11 +13,27 @@ class _EPaldudismoScreenState extends State<EPaldudismoScreen> {
   final TextEditingController _symptomsController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _textFieldFocus = FocusNode();
+  bool _isOffline = false;
 
   @override
   void initState() {
     super.initState();
     _textFieldFocus.addListener(_onFocusChange);
+    _checkConnectivity();
+  }
+
+  // Check internet connectivity
+  Future<void> _checkConnectivity() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      setState(() {
+        _isOffline = !(result.isNotEmpty && result[0].rawAddress.isNotEmpty);
+      });
+    } on SocketException catch (_) {
+      setState(() {
+        _isOffline = true;
+      });
+    }
   }
 
   void _onFocusChange() {
@@ -67,6 +84,29 @@ class _EPaldudismoScreenState extends State<EPaldudismoScreen> {
             Navigator.pop(context);
           },
         ),
+        title: _isOffline
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.cloud_off, color: Colors.orange, size: 20),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Offline',
+                    style: TextStyle(
+                      color: Colors.orange,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              )
+            : null,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.black),
+            onPressed: _checkConnectivity,
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         controller: _scrollController,
@@ -156,26 +196,70 @@ class _EPaldudismoScreenState extends State<EPaldudismoScreen> {
 
                 const SizedBox(height: 40),
 
+                // Offline Warning
+                if (_isOffline) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[100],
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.orange[300]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.wifi_off,
+                            color: Colors.orange[700], size: 24),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Esta funcionalidade requer conexão à internet. Verifique sua conexão e tente novamente.',
+                            style: TextStyle(
+                              color: Colors.orange[700],
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 // Button
                 ElevatedButton(
-                  onPressed: () {
-                    final String symptoms = _symptomsController.text;
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => MalariaResultScreen(
-                              symptomsDescription: symptoms)),
-                    );
-                  },
+                  onPressed: _isOffline
+                      ? null
+                      : () {
+                          final String symptoms = _symptomsController.text;
+                          if (symptoms.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content:
+                                    Text('Por favor, descreva seus sintomas'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
+                          }
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => MalariaResultScreen(
+                                    symptomsDescription: symptoms)),
+                          );
+                        },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red[700],
+                    backgroundColor: _isOffline ? Colors.grey : Colors.red[700],
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30.0),
                     ),
                   ),
-                  child: const Text(
-                    'Iniciar avaliação',
+                  child: Text(
+                    _isOffline
+                        ? 'Requer conexão à internet'
+                        : 'Iniciar avaliação',
                     style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
