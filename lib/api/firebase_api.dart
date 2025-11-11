@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // Import the local notifications plugin
-import 'package:flutter/material.dart'; // Needed for @pragma('vm:entry-point') and NavigatorKey if you add navigation logic
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'dart:io';
 
 // Required for handling taps on foreground notifications from terminated state
 // if you decide to add navigation logic triggered by notification taps later.
@@ -19,24 +19,79 @@ class FirebaseApi {
   Future<void> initNotifications() async {
     try {
       // --- Firebase Messaging Initialization ---
-      // Request permission from user
-      await _firebaseMessaging.requestPermission();
+      // Request permission from user (enhanced for iOS)
+      NotificationSettings settings =
+          await _firebaseMessaging.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
 
-      // Fetch the FCM token with error handling
+      print('FCM Permission status: ${settings.authorizationStatus}');
+
+      // Fetch the FCM token with error handling (iOS APNS token fix)
       try {
-        final token = await _firebaseMessaging.getToken();
+        String? token;
+
+        // For iOS, ensure APNS token is available first
+        if (Platform.isIOS) {
+          try {
+            // Wait for APNS token to be available with retries
+            String? apnsToken;
+            int retryCount = 0;
+            const maxRetries = 5;
+
+            while (apnsToken == null && retryCount < maxRetries) {
+              apnsToken = await _firebaseMessaging.getAPNSToken();
+              if (apnsToken == null) {
+                retryCount++;
+                print(
+                    'APNS Token not available yet, retrying... ($retryCount/$maxRetries)');
+                await Future.delayed(Duration(seconds: retryCount));
+              }
+            }
+
+            if (apnsToken != null) {
+              print('APNS Token available: ${apnsToken.substring(0, 20)}...');
+            } else {
+              print(
+                  'APNS Token not available after $maxRetries retries, proceeding anyway...');
+            }
+
+            token = await _firebaseMessaging.getToken();
+          } catch (apnsError) {
+            print(
+                'APNS Token error: $apnsError, trying to get FCM token anyway...');
+            token = await _firebaseMessaging.getToken();
+          }
+        } else {
+          // For Android and other platforms
+          token = await _firebaseMessaging.getToken();
+        }
+
         if (token != null) {
           // Print the token
           print('FCM Token: $token');
           // Add the token to Firestore
           await _addTokenToFirestore(token);
         } else {
-          print('FCM Token is null - this is normal in iOS simulator');
+          print('FCM Token is null - this might be normal in iOS simulator');
         }
       } catch (tokenError) {
-        print('Error getting FCM token (normal in simulator): $tokenError');
+        print(
+            'Error getting FCM token (might be normal in simulator): $tokenError');
         // Continue initialization even if token fails
       }
+
+      // Listen for token refresh (important for iOS)
+      _firebaseMessaging.onTokenRefresh.listen((newToken) async {
+        print('FCM Token refreshed: $newToken');
+        await _addTokenToFirestore(newToken);
+      });
 
       // Configure handling for foreground messages
       // This listener receives messages when the app is open and in the foreground
@@ -139,12 +194,10 @@ class FirebaseApi {
         "Firebase and flutter_local_notifications initialized."); // Added print for confirmation
   }
 
-  // Method to add the FCM token to Firestore (Your existing method)
+  // Method to add the FCM token to Firestore
   Future<void> _addTokenToFirestore(String token) async {
     try {
       final FirebaseFirestore firestore = FirebaseFirestore.instance;
-      // ** IMPORTANT: Replace 'c2PbPi31eheOSGuBKDor' with the actual user ID **
-      // You should get the current authenticated user's UID here.
       final String documentId = 'c2PbPi31eheOSGuBKDor';
       final String collectionName = 'fcm';
       final String tokenFieldName = 'token';
@@ -155,23 +208,29 @@ class FirebaseApi {
       // Check if the document exists before trying to update
       final docSnapshot = await documentReference.get();
       if (docSnapshot.exists) {
-        await documentReference.update({
-          tokenFieldName: FieldValue.arrayUnion([token]),
-        });
-        print(
-            'Token "$token" successfully added to document "$documentId" in collection "$collectionName"');
+        // Get existing tokens to avoid duplicates
+        final existingData = docSnapshot.data() as Map<String, dynamic>?;
+        final existingTokens =
+            existingData?[tokenFieldName] as List<dynamic>? ?? [];
+
+        if (!existingTokens.contains(token)) {
+          await documentReference.update({
+            tokenFieldName: FieldValue.arrayUnion([token]),
+          });
+          print(
+              'FCM Token "$token" successfully added to document "$documentId"');
+        } else {
+          print('FCM Token already exists in the array. No duplicate added.');
+        }
       } else {
         // If the document doesn't exist, create it with the token
         await documentReference.set({
           tokenFieldName: [token], // Start a new array with the token
-          // Add other fields if necessary when creating a new document
         });
-        print(
-            'Document "$documentId" created and token "$token" added to collection "$collectionName"');
+        print('Document "$documentId" created and FCM token "$token" added');
       }
     } catch (e) {
-      print('Error adding token to Firestore: $e');
-      // Handle specific errors if needed (e.g., permissions)
+      print('Error adding FCM token to Firestore: $e');
     }
   }
 

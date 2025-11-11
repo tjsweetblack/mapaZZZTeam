@@ -165,8 +165,14 @@ class _PendingRewardsPageState extends State<PendingRewardsPage> {
           }
 
           final isConnected = connectivitySnapshot.data ?? false;
-          setState(() {
-            _isOffline = !isConnected;
+
+          // Update offline status after build completes
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _isOffline != !isConnected) {
+              setState(() {
+                _isOffline = !isConnected;
+              });
+            }
           });
 
           if (!isConnected) {

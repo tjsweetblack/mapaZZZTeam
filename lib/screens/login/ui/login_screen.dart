@@ -118,7 +118,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   onPressed: () {
                     setState(() {
-                      _isPasswordVisible = !_isPasswordVisible; // Toggle visibility
+                      _isPasswordVisible =
+                          !_isPasswordVisible; // Toggle visibility
                     });
                   },
                 ),
@@ -173,7 +174,8 @@ class _LoginScreenState extends State<LoginScreen> {
               },
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
                 decoration: BoxDecoration(
                   color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(10.0),

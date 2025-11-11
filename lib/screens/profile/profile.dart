@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Explicitly import FirebaseAuth
 import 'package:intl/intl.dart'; // For date formatting
+import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -201,255 +202,496 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFFFF5722),
+              Color(0xFFFF8A65),
+              Colors.white,
+            ],
+            stops: [0.0, 0.3, 1.0],
+          ),
         ),
-        title: const Text('', style: TextStyle(color: Colors.black)),
-        centerTitle: false,
-      ),
-      body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-                child: CircularProgressIndicator(color: Colors.black));
-          }
-          if (snapshot.hasError) {
-            return Center(
-                child: Text('Error: ${snapshot.error}',
-                    style: const TextStyle(color: Colors.black)));
-          }
-          if (!snapshot.hasData || !snapshot.data!.exists) {
-            // This is a crucial part. If the user document doesn't exist,
-            // you should create a default one to avoid "No user data found."
-            // For now, I'll keep the message, but consider creating it.
-            return const Center(
-                child: Text(
-                    'No user data found. Please ensure your user document exists.',
-                    style: TextStyle(color: Colors.black)));
-          }
-
-          var userData = snapshot.data!.data() as Map<String, dynamic>;
-          final points = userData['points'] as int? ?? 0;
-          final String currentRank = _getRank(points);
-          final String? existingRank = userData['rank'] as String?;
-
-          // Only update controllers and state when data is first loaded or significantly changes
-          if (!_initialDataLoaded) {
-            _emailController.text = userData['email'] ?? '';
-            _phoneController.text = userData['phoneNumber'] ?? '';
-
-            String? fetchedBirthday = userData['birthday'] as String?;
-            if (fetchedBirthday != null && fetchedBirthday.isNotEmpty) {
-              _birthdayController.text = fetchedBirthday;
-              try {
-                _selectedBirthdayDate =
-                    DateFormat('dd/MM/yyyy').parse(fetchedBirthday);
-              } catch (e) {
-                _selectedBirthdayDate = null;
-              }
-            } else {
-              _birthdayController.text = 'Não definido';
-              _selectedBirthdayDate = null;
-            }
-
-            String? fetchedGender = userData['gender'] as String?;
-            _selectedGender = fetchedGender != null && fetchedGender.isNotEmpty
-                ? fetchedGender
-                : 'Selecione';
-
-            _initialDataLoaded = true; // Mark as loaded
-          }
-
-          // Update rank in Firestore only if there's a discrepancy
-          // This should ideally happen only once when the data stabilizes
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _updateRankInFirestore(user.uid, currentRank, existingRank);
-          });
-
-          return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 20),
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom App Bar
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    Container(
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: Colors.red, width: 4), // Red border
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: CircleAvatar(
-                        radius: 56,
-                        backgroundImage: AssetImage(
-                          _getImageForRank(currentRank),
-                        ),
-                        backgroundColor: Colors.transparent,
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.of(context).pop(),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Text(
-                      userData['name'] ?? 'Elisandro Franco',
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // "Meu Rank" title
-                  Center(
-                    child: Text(
-                      'Meu Rank',
-                      style: TextStyle(
-                        color: Colors.red[700],
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  // Rank icon + rank name
-                  Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.emoji_events,
-                            color: Colors.amber, size: 22), // Rank icon
-                        const SizedBox(width: 6),
-                        Text(
-                          currentRank,
+                    const Expanded(
+                      child: Center(
+                        child: Text(
+                          'Meu Perfil',
                           style: TextStyle(
-                            color: Colors.grey[800],
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // "Meus Pontos" title
-                  Center(
-                    child: Text(
-                      'Meus Pontos',
-                      style: TextStyle(
-                        color: Colors.red[700],
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  // Star icon + points
-                  Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.star,
-                            color: Colors.amber, size: 22), // Star icon
-                        const SizedBox(width: 6),
-                        Text(
-                          points.toString(),
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-
-                  // E-mail Field (Read-only)
-                  _buildTextField(
-                    "E-mail",
-                    _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    readOnly: true,
-                    leadingIcon: Icons.email_outlined, // Email icon
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Telefone Field (Editable)
-                  _buildTextField(
-                    "Telefone",
-                    _phoneController,
-                    keyboardType: TextInputType.phone,
-                    prefixText: '(+244) ',
-                    readOnly: false,
-                    leadingIcon: Icons.phone_outlined, // Phone icon
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Gênero Dropdown
-                  _buildDropdown(
-                    "Gênero",
-                    const ['Selecione', 'Masculino', 'Feminino', 'Outro'],
-                    initialValue: _selectedGender,
-                    onChanged: (newValue) {
-                      setState(() {
-                        _selectedGender = newValue;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Data de nascimento (Date Picker Field)
-                  _buildTextField(
-                    "Data de nascimento",
-                    _birthdayController,
-                    readOnly:
-                        true, // Make it read-only so user taps to open picker
-                    leadingIcon: Icons.calendar_today_outlined, // Calendar icon
-                    onTap: () =>
-                        _selectDate(context), // Open date picker on tap
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // Salvar alterações Button
-                  ElevatedButton(
-                    onPressed: _isUpdating
-                        ? null
-                        : () => _saveAllChanges(
-                            user.uid), // Call the consolidated save function
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(10.0), // More rounded
-                      ),
-                    ),
-                    child: _isUpdating
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Salvar alterações',
-                            style:
-                                TextStyle(color: Colors.white, fontSize: 16)),
-                  ),
-                ],
+                    const SizedBox(width: 48), // Balance the back button
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+              // Main content
+              Expanded(
+                child: StreamBuilder<DocumentSnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(user.uid)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                            child:
+                                CircularProgressIndicator(color: Colors.black));
+                      }
+                      if (snapshot.hasError) {
+                        return Center(
+                            child: Text('Error: ${snapshot.error}',
+                                style: const TextStyle(color: Colors.black)));
+                      }
+                      if (!snapshot.hasData || !snapshot.data!.exists) {
+                        // This is a crucial part. If the user document doesn't exist,
+                        // you should create a default one to avoid "No user data found."
+                        // For now, I'll keep the message, but consider creating it.
+                        return const Center(
+                            child: Text(
+                                'No user data found. Please ensure your user document exists.',
+                                style: TextStyle(color: Colors.black)));
+                      }
+
+                      var userData =
+                          snapshot.data!.data() as Map<String, dynamic>;
+                      final points = userData['points'] as int? ?? 0;
+                      final String currentRank = _getRank(points);
+                      final String? existingRank = userData['rank'] as String?;
+
+                      // Only update controllers and state when data is first loaded or significantly changes
+                      if (!_initialDataLoaded) {
+                        _emailController.text = userData['email'] ?? '';
+                        _phoneController.text = userData['phoneNumber'] ?? '';
+
+                        String? fetchedBirthday =
+                            userData['birthday'] as String?;
+                        if (fetchedBirthday != null &&
+                            fetchedBirthday.isNotEmpty) {
+                          _birthdayController.text = fetchedBirthday;
+                          try {
+                            _selectedBirthdayDate =
+                                DateFormat('dd/MM/yyyy').parse(fetchedBirthday);
+                          } catch (e) {
+                            _selectedBirthdayDate = null;
+                          }
+                        } else {
+                          _birthdayController.text = 'Não definido';
+                          _selectedBirthdayDate = null;
+                        }
+
+                        String? fetchedGender = userData['gender'] as String?;
+                        _selectedGender =
+                            fetchedGender != null && fetchedGender.isNotEmpty
+                                ? fetchedGender
+                                : 'Selecione';
+
+                        _initialDataLoaded = true; // Mark as loaded
+                      }
+
+                      // Update rank in Firestore only if there's a discrepancy
+                      // This should ideally happen only once when the data stabilizes
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _updateRankInFirestore(
+                            user.uid, currentRank, existingRank);
+                      });
+
+                      return SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            // Profile Header Card
+                            Container(
+                              margin: const EdgeInsets.all(16.0),
+                              padding: const EdgeInsets.all(24.0),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  // Profile Avatar with enhanced styling
+                                  Stack(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              Colors.red.shade400,
+                                              Colors.red.shade600
+                                            ],
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color:
+                                                  Colors.red.withOpacity(0.3),
+                                              blurRadius: 15,
+                                              offset: const Offset(0, 5),
+                                            ),
+                                          ],
+                                        ),
+                                        child: CircleAvatar(
+                                          radius: 60,
+                                          backgroundImage: AssetImage(
+                                            _getImageForRank(currentRank),
+                                          ),
+                                          backgroundColor: Colors.transparent,
+                                        ),
+                                      ),
+                                      Positioned(
+                                        bottom: 0,
+                                        right: 0,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.amber,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                                color: Colors.white, width: 3),
+                                          ),
+                                          child: const Icon(
+                                            Icons.emoji_events,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 20),
+                                  // User Name
+                                  Text(
+                                    userData['name'] ?? 'Elisandro Franco',
+                                    style: const TextStyle(
+                                      color: Colors.black87,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 24,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  // Rank and Points Row
+                                  Row(
+                                    children: [
+                                      // Rank Card
+                                      Expanded(
+                                        child: Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                Colors.amber.shade100,
+                                                Colors.amber.shade50
+                                              ],
+                                            ),
+                                            borderRadius:
+                                                BorderRadius.circular(15),
+                                            border: Border.all(
+                                                color: Colors.amber.shade200),
+                                          ),
+                                          child: Column(
+                                            children: [
+                                              const Icon(
+                                                Icons.emoji_events,
+                                                color: Colors.amber,
+                                                size: 28,
+                                              ),
+                                              const SizedBox(height: 8),
+                                              const Text(
+                                                'Meu Rank',
+                                                style: TextStyle(
+                                                  color: Colors.grey,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                currentRank,
+                                                textAlign: TextAlign.center,
+                                                style: const TextStyle(
+                                                  color: Colors.black87,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      // Points Card
+                                      Expanded(
+                                        child: Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                Colors.red.shade50,
+                                                Colors.red.shade100
+                                              ],
+                                            ),
+                                            borderRadius:
+                                                BorderRadius.circular(15),
+                                            border: Border.all(
+                                                color: Colors.red.shade100),
+                                          ),
+                                          child: Column(
+                                            children: [
+                                              const Icon(
+                                                Icons.star,
+                                                color: Colors.red,
+                                                size: 28,
+                                              ),
+                                              const SizedBox(height: 8),
+                                              const Text(
+                                                'Meus Pontos',
+                                                style: TextStyle(
+                                                  color: Colors.grey,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                points.toString(),
+                                                style: const TextStyle(
+                                                  color: Colors.black87,
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Profile Form Card
+                            Container(
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 16.0),
+                              padding: const EdgeInsets.all(24.0),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  // Section Title
+                                  const Text(
+                                    'Informações Pessoais',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+
+                                  // E-mail Field (Read-only)
+                                  _buildTextField(
+                                    "E-mail",
+                                    _emailController,
+                                    keyboardType: TextInputType.emailAddress,
+                                    readOnly: true,
+                                    leadingIcon: Icons.email_outlined,
+                                  ),
+                                  const SizedBox(height: 20),
+
+                                  // Telefone Field (Editable)
+                                  _buildTextField(
+                                    "Telefone",
+                                    _phoneController,
+                                    keyboardType: TextInputType.phone,
+                                    prefixText: '(+244) ',
+                                    readOnly: false,
+                                    leadingIcon: Icons.phone_outlined,
+                                  ),
+                                  const SizedBox(height: 20),
+
+                                  // Gênero Dropdown
+                                  _buildDropdown(
+                                    "Gênero",
+                                    const [
+                                      'Selecione',
+                                      'Masculino',
+                                      'Feminino',
+                                      'Outro'
+                                    ],
+                                    initialValue: _selectedGender,
+                                    onChanged: (newValue) {
+                                      setState(() {
+                                        _selectedGender = newValue;
+                                      });
+                                    },
+                                  ),
+                                  const SizedBox(height: 20),
+
+                                  // Data de nascimento (Date Picker Field)
+                                  _buildTextField(
+                                    "Data de nascimento",
+                                    _birthdayController,
+                                    readOnly: true,
+                                    leadingIcon: Icons.calendar_today_outlined,
+                                    onTap: () => _selectDate(context),
+                                  ),
+
+                                  const SizedBox(height: 32),
+
+                                  // Salvar alterações Button
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Colors.red.shade400,
+                                          Colors.red.shade600
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(15),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.red.withOpacity(0.3),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ElevatedButton(
+                                      onPressed: _isUpdating
+                                          ? null
+                                          : () => _saveAllChanges(user.uid),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.transparent,
+                                        shadowColor: Colors.transparent,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 18),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(15),
+                                        ),
+                                      ),
+                                      child: _isUpdating
+                                          ? const SizedBox(
+                                              height: 20,
+                                              width: 20,
+                                              child: CircularProgressIndicator(
+                                                color: Colors.white,
+                                                strokeWidth: 2,
+                                              ),
+                                            )
+                                          : const Text(
+                                              'Salvar alterações',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 24),
+
+                                  // Privacy Policy Link
+                                  InkWell(
+                                    onTap: () async {
+                                      final Uri url = Uri.parse('https://ma-pa-zzz.tech/privacy-policy');
+                                      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                                        debugPrint('Could not launch $url');
+                                      }
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.all(16.0),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade50,
+                                        borderRadius: BorderRadius.circular(15),
+                                        border: Border.all(
+                                          color: Colors.grey.shade300,
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.privacy_tip_outlined,
+                                            color: Colors.grey.shade700,
+                                            size: 20,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'Política de Privacidade',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey.shade700,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Icon(
+                                            Icons.open_in_new,
+                                            color: Colors.grey.shade600,
+                                            size: 16,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
+                        ),
+                      );
+                    }),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -458,43 +700,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildTextField(String labelText, TextEditingController controller,
       {TextInputType keyboardType = TextInputType.text,
       String? prefixText,
-      IconData? leadingIcon, // Added leadingIcon parameter
+      IconData? leadingIcon,
       bool readOnly = false,
-      VoidCallback? onTap // Added onTap for date picker
-      }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.black),
-      readOnly: readOnly,
-      onTap: onTap, // Assign the onTap callback
-      decoration: InputDecoration(
-        labelText: labelText,
-        labelStyle: const TextStyle(color: Colors.black87),
-        prefixText: prefixText,
-        prefixIcon: leadingIcon != null
-            ? Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                child: Icon(leadingIcon, color: Colors.black54),
-              )
-            : null, // Use prefixIcon for leading icon
-        prefixIconConstraints:
-            BoxConstraints.tight(const Size(48, 24)), // Adjust icon spacing
-        prefixStyle: const TextStyle(color: Colors.black),
-        enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.black38),
-          borderRadius: BorderRadius.circular(10), // Rounded corners
+      VoidCallback? onTap}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        style: const TextStyle(color: Colors.black87, fontSize: 16),
+        readOnly: readOnly,
+        onTap: onTap,
+        decoration: InputDecoration(
+          labelText: labelText,
+          labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+          prefixText: prefixText,
+          prefixIcon: leadingIcon != null
+              ? Container(
+                  margin: const EdgeInsets.only(right: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(15),
+                      bottomLeft: Radius.circular(15),
+                    ),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child:
+                      Icon(leadingIcon, color: Colors.red.shade400, size: 20),
+                )
+              : null,
+          prefixStyle: const TextStyle(color: Colors.black87),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.red.shade300, width: 2),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.redAccent, width: 2),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.black),
-          borderRadius: BorderRadius.circular(10), // Rounded corners
-        ),
-        disabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: Colors.black38),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16, vertical: 12), // Adjust padding
       ),
     );
   }
@@ -504,39 +757,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
       {String? initialValue, ValueChanged<String?>? onChanged}) {
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.black38),
-        borderRadius: BorderRadius.circular(10), // Rounded corners
-        color: Colors.white,
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: DropdownButtonFormField<String>(
         value: initialValue != null && items.contains(initialValue)
             ? initialValue
-            : items
-                .first, // Set initial value, default to first item if not found
-        hint: Text(labelText, style: const TextStyle(color: Colors.black87)),
+            : items.first,
+        hint: Text(labelText, style: TextStyle(color: Colors.grey.shade600)),
         items: items.map((String item) {
           return DropdownMenuItem<String>(
             value: item,
-            child: Text(item, style: const TextStyle(color: Colors.black)),
+            child: Text(item, style: const TextStyle(color: Colors.black87)),
           );
         }).toList(),
         onChanged: onChanged,
         dropdownColor: Colors.white,
-        style: const TextStyle(color: Colors.black),
+        style: const TextStyle(color: Colors.black87, fontSize: 16),
         decoration: InputDecoration(
-          border: InputBorder.none, // Remove default underline
-          isDense: true,
-          contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16, vertical: 12), // Adjust padding
-          icon: const Padding(
-            padding: EdgeInsets.only(left: 12.0),
+          border: InputBorder.none,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          prefixIcon: Container(
+            margin: const EdgeInsets.only(right: 12),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(15),
+                bottomLeft: Radius.circular(15),
+              ),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child:
-                Icon(Icons.male_outlined, color: Colors.black54), // Gender icon
+                Icon(Icons.male_outlined, color: Colors.red.shade400, size: 20),
           ),
         ),
-        icon: const Icon(Icons.arrow_drop_down,
-            color: Colors.black87), // Default dropdown arrow
-        iconDisabledColor: Colors.black38,
+        icon: Icon(Icons.arrow_drop_down, color: Colors.grey.shade600),
+        iconSize: 24,
       ),
     );
   }

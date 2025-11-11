@@ -307,9 +307,11 @@ class _RewardsPageState extends State<RewardsPage> {
                       icon: const Icon(Icons.refresh),
                       onPressed: () async {
                         final hasConnection = await _checkConnectivity();
-                        setState(() {
-                          _isOffline = !hasConnection;
-                        });
+                        if (mounted) {
+                          setState(() {
+                            _isOffline = !hasConnection;
+                          });
+                        }
                       },
                     ),
                     const Icon(Icons.star_outline, color: Colors.red),
@@ -376,9 +378,17 @@ class _RewardsPageState extends State<RewardsPage> {
           }
 
           final isConnected = connectivitySnapshot.data ?? false;
-          setState(() {
-            _isOffline = !isConnected;
-          });
+
+          // Update offline state after build completes
+          if (_isOffline != !isConnected) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _isOffline = !isConnected;
+                });
+              }
+            });
+          }
 
           if (!isConnected) {
             // Show cached data when offline

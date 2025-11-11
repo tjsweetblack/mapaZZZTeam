@@ -241,8 +241,13 @@ class _BlogPageState extends State<BlogPage> {
           final isConnected = connectivitySnapshot.data ?? false;
 
           if (!isConnected) {
-            setState(() {
-              _isOffline = true;
+            // Use addPostFrameCallback to defer setState until after build
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && !_isOffline) {
+                setState(() {
+                  _isOffline = true;
+                });
+              }
             });
 
             if (_cachedBlogs.isEmpty) {
@@ -278,6 +283,15 @@ class _BlogPageState extends State<BlogPage> {
           }
 
           // Online - use StreamBuilder
+          // Use addPostFrameCallback to defer setState until after build
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _isOffline) {
+              setState(() {
+                _isOffline = false;
+              });
+            }
+          });
+
           return StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance.collection('blog').snapshots(),
             builder: (context, snapshot) {

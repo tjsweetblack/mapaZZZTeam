@@ -41,7 +41,8 @@ class _EmailAndPasswordState extends State<EmailAndPassword> {
 
   TextEditingController nameController = TextEditingController();
   TextEditingController emailController = TextEditingController();
-  TextEditingController phoneNumberController = TextEditingController();  // Add this line
+  TextEditingController phoneNumberController =
+      TextEditingController(); // Add this line
   TextEditingController passwordController = TextEditingController();
   TextEditingController passwordConfirmationController =
       TextEditingController();
@@ -357,21 +358,21 @@ class _EmailAndPasswordState extends State<EmailAndPassword> {
   }
 
   AppTextButton signUpButton(BuildContext context) {
-  return AppTextButton(
-    buttonText: "Create Account",
-    textStyle: TextStyles.font16White600Weight,
-    onPressed: () async {
-      passwordFocuseNode.unfocus();
-      passwordConfirmationFocuseNode.unfocus();
-      if (formKey.currentState!.validate()) {
-        context.read<AuthCubit>().signUpWithEmail(
-          nameController.text,
-          emailController.text,
-          passwordController.text,
-          phoneNumberController.text, // Add phone number here
-        );
-      }
-    },
-  );
-}
+    return AppTextButton(
+      buttonText: "Create Account",
+      textStyle: TextStyles.font16White600Weight,
+      onPressed: () async {
+        passwordFocuseNode.unfocus();
+        passwordConfirmationFocuseNode.unfocus();
+        if (formKey.currentState!.validate()) {
+          context.read<AuthCubit>().signUpWithEmail(
+                nameController.text,
+                emailController.text,
+                passwordController.text,
+                phoneNumberController.text, // Add phone number here
+              );
+        }
+      },
+    );
+  }
 }

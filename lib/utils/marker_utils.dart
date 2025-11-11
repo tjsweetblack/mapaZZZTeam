@@ -12,10 +12,13 @@ Future<BitmapDescriptor> getCustomMarkerIcon() async {
   const double outerRadius = size / 2;
   const double innerRadius = size / 4;
 
-  canvas.drawCircle(const Offset(outerRadius, outerRadius), outerRadius, paint1);
-  canvas.drawCircle(const Offset(outerRadius, outerRadius), innerRadius, paint2);
+  canvas.drawCircle(
+      const Offset(outerRadius, outerRadius), outerRadius, paint1);
+  canvas.drawCircle(
+      const Offset(outerRadius, outerRadius), innerRadius, paint2);
 
-  final img = await pictureRecorder.endRecording().toImage(size.toInt(), size.toInt());
+  final img =
+      await pictureRecorder.endRecording().toImage(size.toInt(), size.toInt());
   final data = await img.toByteData(format: ui.ImageByteFormat.png);
   return BitmapDescriptor.fromBytes(data!.buffer.asUint8List());
 }

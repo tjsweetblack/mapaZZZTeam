@@ -75,14 +75,16 @@ class WelcomeScreen extends StatelessWidget {
               ElevatedButton(
                 onPressed: () {
                   // Redireciona para a tela de níveis (sua HomeScren atual)
-                  Navigator.pushReplacement( // Usa pushReplacement para que não dê para voltar para a WelcomeScreen
+                  Navigator.pushReplacement(
+                    // Usa pushReplacement para que não dê para voltar para a WelcomeScreen
                     context,
                     MaterialPageRoute(builder: (context) => const HomeScreen()),
                   );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red, // Cor de fundo do botão
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),

@@ -64,7 +64,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '734479508053',
     projectId: 'mapzzz-62a4f',
     storageBucket: 'mapzzz-62a4f.firebasestorage.app',
-    iosBundleId: 'com.example.authBloc',
+    iosBundleId: 'com.mapazzz.mapazzz',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -73,7 +73,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '734479508053',
     projectId: 'mapzzz-62a4f',
     storageBucket: 'mapzzz-62a4f.firebasestorage.app',
-    iosBundleId: 'com.example.authBloc',
+    iosBundleId: 'com.mapazzz.mapazzz',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

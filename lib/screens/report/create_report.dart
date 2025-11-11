@@ -9,13 +9,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'report_details.dart';
-import 'package:google_generative_ai/google_generative_ai.dart'; // Import the generative AI package
 
-// Add the API key.  Make sure to replace it with your actual API key.
-const String _apiKey =
-    'AIzaSyDAymoAdQKM79yNb7P0ki5KbRKZIOaDbWY'; //  <--- Replace with your actual API key
+enum LoadingStage {
+  uploadingImage,
+  analyzingRisk,
+  generatingSolution,
+  addingPoints,
+  success,
+}
 
 class CreateReportCameraScreen extends StatefulWidget {
   @override
@@ -25,8 +28,8 @@ class CreateReportCameraScreen extends StatefulWidget {
 
 class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
     with WidgetsBindingObserver {
-  late CameraController _cameraController;
-  late Future<void> _initializeCameraControllerFuture;
+  CameraController? _cameraController;
+  Future<void>? _initializeCameraControllerFuture;
   List<CameraDescription> _cameras = [];
   bool _isAnalyzing = false; // Track image analysis state
 
@@ -40,12 +43,14 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Use .value.isInitialized to check if the controller is initialized.
-    if (!_cameraController.value.isInitialized) {
+    if (_cameraController?.value.isInitialized != true) {
       return;
     }
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused) {
-      _cameraController.dispose();
+      _cameraController?.dispose();
+      _cameraController = null;
+      _initializeCameraControllerFuture = null;
     } else if (state == AppLifecycleState.resumed) {
       _setupCamera();
     }
@@ -59,12 +64,16 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
         print('No cameras available.');
         return;
       }
+
+      // Dispose existing controller if any
+      await _cameraController?.dispose();
+
       _cameraController = CameraController(
         _cameras.first, // Get a specific camera from the list
         ResolutionPreset.high, // Set the resolution
       );
-      _initializeCameraControllerFuture = _cameraController.initialize();
-      await _initializeCameraControllerFuture; // Ensure initialization completes.
+      _initializeCameraControllerFuture = _cameraController!.initialize();
+      await _initializeCameraControllerFuture!; // Ensure initialization completes.
 
       if (!mounted) {
         return;
@@ -84,7 +93,7 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
 
   @override
   void dispose() {
-    _cameraController.dispose();
+    _cameraController?.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -121,7 +130,7 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
         }
         return false;
       }
-    } catch (e, stack) {
+    } catch (e) {
       if (mounted) {
         await showDialog(
           context: context,
@@ -245,11 +254,13 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
       body: FutureBuilder<void>(
         future: _initializeCameraControllerFuture,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
+          if (snapshot.connectionState == ConnectionState.done &&
+              _cameraController != null &&
+              _cameraController!.value.isInitialized) {
             // Camera initialized, display the preview
             return Stack(
               children: [
-                CameraPreview(_cameraController),
+                CameraPreview(_cameraController!),
                 Align(
                   alignment: Alignment.topCenter,
                   child: Padding(
@@ -285,19 +296,21 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
                         : ElevatedButton(
                             onPressed: () async {
                               setState(() {
-                                _isAnalyzing = true;
+                                //_isAnalyzing = true;
                               });
                               _showAnalyzingDialog(); // Show dialog
                               try {
                                 await _initializeCameraControllerFuture;
+                                if (_cameraController == null) {
+                                  throw Exception('Camera not initialized');
+                                }
                                 final image =
-                                    await _cameraController.takePicture();
+                                    await _cameraController!.takePicture();
                                 bool isImageValid =
                                     await _isImageValidForReport(image.path);
 
                                 Navigator.of(context).pop(); // Dismiss dialog
-                                _showResultDialog(
-                                    isImageValid); //show result dialog
+                                //show result dialog
 
                                 if (isImageValid) {
                                   if (mounted) {
@@ -346,12 +359,12 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
                 ),
               ],
             );
-          } else if (snapshot.connectionState == ConnectionState.waiting) {
-            // Otherwise, display a loading indicator
-            return const Center(child: CircularProgressIndicator());
           } else {
-            return Center(
-                child: Text('Camera Error: ${snapshot.error}')); //show error.
+            // Show nothing while camera is loading or if there's an error
+            return Container(
+              color: Colors.black,
+              child: const SizedBox.expand(),
+            );
           }
         },
       ),
@@ -372,10 +385,11 @@ class CreateReportDetailsScreen extends StatefulWidget {
 class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  String? _imageUrl;
   bool _isUploading = false;
   String _shippingAddress = ''; // To store the fetched address
   bool _isCreatingReport = false; // To track report creation process
+  final GlobalKey<_CreateReportLoadingDialogState> _loadingDialogKey =
+      GlobalKey<_CreateReportLoadingDialogState>();
 
   @override
   void dispose() {
@@ -425,67 +439,67 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
     }
   }
 
-  Future<String?> _getCurrentLocationName(
-      double latitude, double longitude) async {
-    try {
-      final response = await http.get(Uri.parse(
-          'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=$latitude&lon=$longitude&addressdetails=1'));
-      if (response.statusCode == 200) {
-        final decodedResponse = jsonDecode(response.body);
-        print("Nominatim API decodedResponse: $decodedResponse");
-        if (decodedResponse != null &&
-            decodedResponse['display_name'] != null) {
-          // <-- Check for display_name
-          setState(() {
-            // Ensure mounted before calling setState
-            _shippingAddress = decodedResponse[
-                'display_name']; // <-- Use display_name directly
-            print(
-                "Shipping address set to: $_shippingAddress"); // Log shipping address
-          });
-          return _shippingAddress;
-        } else {
-          print(
-              "Nominatim API: No address details found in response (inside IF condition)");
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text(
-                      'Nenhum endereço encontrado para a localização selecionada.')),
-            );
-          }
-          setState(() {
-            _shippingAddress = '';
-          });
-          return null;
-        }
-      } else {
-// Handle API error (e.g., show an error message)
-        print(
-            "Nominatim API request failed with status: ${response.statusCode}");
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Falha ao obter o endereço.')));
-        }
+//   Future<String?> _getCurrentLocationName(
+//       double latitude, double longitude) async {
+//     try {
+//       final response = await http.get(Uri.parse(
+//           'https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=$latitude&lon=$longitude&addressdetails=1'));
+//       if (response.statusCode == 200) {
+//         final decodedResponse = jsonDecode(response.body);
+//         print("Nominatim API decodedResponse: $decodedResponse");
+//         if (decodedResponse != null &&
+//             decodedResponse['display_name'] != null) {
+//           // <-- Check for display_name
+//           setState(() {
+//             // Ensure mounted before calling setState
+//             _shippingAddress = decodedResponse[
+//                 'display_name']; // <-- Use display_name directly
+//             print(
+//                 "Shipping address set to: $_shippingAddress"); // Log shipping address
+//           });
+//           return _shippingAddress;
+//         } else {
+//           print(
+//               "Nominatim API: No address details found in response (inside IF condition)");
+//           if (mounted) {
+//             ScaffoldMessenger.of(context).showSnackBar(
+//               const SnackBar(
+//                   content: Text(
+//                       'Nenhum endereço encontrado para a localização selecionada.')),
+//             );
+//           }
+//           setState(() {
+//             _shippingAddress = '';
+//           });
+//           return null;
+//         }
+//       } else {
+// // Handle API error (e.g., show an error message)
+//         print(
+//             "Nominatim API request failed with status: ${response.statusCode}");
+//         if (mounted) {
+//           ScaffoldMessenger.of(context).showSnackBar(
+//               const SnackBar(content: Text('Falha ao obter o endereço.')));
+//         }
 
-        setState(() {
-          _shippingAddress = '';
-        });
-        return null;
-      }
-    } catch (e) {
-// Handle any exceptions (e.g., network issues)
-      print("Error fetching address: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Falha ao obter o endereço.')));
-      }
-      setState(() {
-        _shippingAddress = '';
-      });
-      return null;
-    }
-  }
+//         setState(() {
+//           _shippingAddress = '';
+//         });
+//         return null;
+//       }
+//     } catch (e) {
+// // Handle any exceptions (e.g., network issues)
+//       print("Error fetching address: $e");
+//       if (mounted) {
+//         ScaffoldMessenger.of(context).showSnackBar(
+//             const SnackBar(content: Text('Falha ao obter o endereço.')));
+//       }
+//       setState(() {
+//         _shippingAddress = '';
+//       });
+//       return null;
+//     }
+//   }
 
   Future<Position> _getCurrentPosition() async {
     bool serviceEnabled;
@@ -648,6 +662,16 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
     }
   }
 
+  void _showCreatingReportDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return _CreateReportLoadingDialog(key: _loadingDialogKey);
+      },
+    );
+  }
+
   Future<void> _createReport() async {
     if (_isCreatingReport || _isUploading) {
       return; // Prevent multiple submissions during upload/creation
@@ -661,23 +685,34 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
       );
       return;
     }
+
     setState(() {
       _isCreatingReport = true;
     });
+
+    // Show the loading dialog
+    _showCreatingReportDialog();
+
     try {
+      // Stage 1: Upload image
+      _updateLoadingStage(context, LoadingStage.uploadingImage);
       String? imageUrl = await _uploadImageToCloudinary(widget.imagePath);
+
       if (imageUrl != null) {
         Position position = await _getCurrentPosition();
-        String? locationName = await _getCurrentLocationName(
-            position.latitude, position.longitude);
         String? userId = FirebaseAuth.instance.currentUser?.uid;
-        if (userId != null) {
-          // Analyze the risk level using AI
-          int riskLevel = await _analyzeRiskLevel(
-              imageUrl, title, description); // Get risk level from AI
 
-          final aiSolution = await _generateSolution(
-              title, description); // Provide a default value
+        if (userId != null) {
+          // Stage 2: Analyze risk level
+          _updateLoadingStage(context, LoadingStage.analyzingRisk);
+          int riskLevel = await _analyzeRiskLevel(imageUrl, title, description);
+
+          // Stage 3: Generate AI solution
+          _updateLoadingStage(context, LoadingStage.generatingSolution);
+          final aiSolution = await _generateSolution(title, description);
+
+          // Stage 4: Adding points
+          _updateLoadingStage(context, LoadingStage.addingPoints);
 
           // Create the report and get the DocumentReference
           DocumentReference reportRef =
@@ -687,22 +722,17 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
             'imageUrl': imageUrl,
             'latitude': position.latitude,
             'longitude': position.longitude,
-            'location': locationName ?? 'Localização desconhecida',
-            'riskLevel':
-                riskLevel, // Store the AI-generated risk level here.  1, 2, or 3
-            'solutionAi': aiSolution, // Store the AI-generated solution here.
+            'riskLevel': riskLevel,
+            'solutionAi': aiSolution,
             'status': 'active',
             'title': title,
             'userId': userId,
           });
 
-          // Get the ID from the DocumentReference
           String reportId = reportRef.id;
-
-          // Update the document with the 'id' field
           await reportRef.update({'id': reportId});
 
-// Update user points
+          // Update user points
           DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
               .collection('users')
               .doc(userId)
@@ -713,32 +743,44 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
             await FirebaseFirestore.instance
                 .collection('users')
                 .doc(userId)
-                .update({'points': currentPoints + 10});
+                .update({'points': currentPoints + 30});
           }
+
+          // Stage 5: Success
+          _updateLoadingStage(context, LoadingStage.success);
+
+          // Wait a moment to show success state
+          await Future.delayed(const Duration(seconds: 1));
+
           setState(() {
             _isCreatingReport = false;
           });
 
-// Fetch the newly created report data
+          // Fetch the newly created report data
           DocumentSnapshot<Map<String, dynamic>> newReportSnapshot =
               await reportRef.get() as DocumentSnapshot<Map<String, dynamic>>;
 
-          // Add the document ID to the report data
           Map<String, dynamic>? reportDataWithId = newReportSnapshot.data();
           if (reportDataWithId != null) {
             reportDataWithId['id'] = newReportSnapshot.id;
           }
+
+          // Close the loading dialog
+          Navigator.of(context).pop();
+
+          // Navigate to success screen
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => CreateReportSuccessScreen(
-                  report: reportDataWithId), // Pass report data with ID
+              builder: (context) =>
+                  CreateReportSuccessScreen(report: reportDataWithId),
             ),
           );
         } else {
           setState(() {
             _isCreatingReport = false;
           });
+          Navigator.of(context).pop(); // Close loading dialog
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Erro ao obter o ID do usuário.')),
@@ -749,6 +791,7 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
         setState(() {
           _isCreatingReport = false;
         });
+        Navigator.of(context).pop(); // Close loading dialog
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Erro ao fazer o upload da imagem.')),
@@ -759,12 +802,18 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
       setState(() {
         _isCreatingReport = false;
       });
+      Navigator.of(context).pop(); // Close loading dialog
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Ocorreu um erro ao criar a reportagem: $e')),
         );
       }
     }
+  }
+
+  void _updateLoadingStage(BuildContext context, LoadingStage stage) {
+    // Update the dialog state using the GlobalKey
+    _loadingDialogKey.currentState?.updateStage(stage);
   }
 
   @override
@@ -846,16 +895,268 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
                     borderRadius: BorderRadius.circular(25.0),
                   ),
                 ),
-                child: (_isCreatingReport || _isUploading)
-                    ? const CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      )
-                    : const Text('Completar'),
+                child: const Text('Completar'),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+// Beautiful Loading Dialog Widget
+class _CreateReportLoadingDialog extends StatefulWidget {
+  const _CreateReportLoadingDialog({Key? key}) : super(key: key);
+
+  @override
+  _CreateReportLoadingDialogState createState() =>
+      _CreateReportLoadingDialogState();
+}
+
+class _CreateReportLoadingDialogState extends State<_CreateReportLoadingDialog>
+    with SingleTickerProviderStateMixin {
+  LoadingStage _currentStage = LoadingStage.uploadingImage;
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    )..repeat(reverse: true);
+    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void updateStage(LoadingStage stage) {
+    if (mounted) {
+      setState(() {
+        _currentStage = stage;
+      });
+    }
+  }
+
+  String _getStageTitle() {
+    switch (_currentStage) {
+      case LoadingStage.uploadingImage:
+        return 'Enviando imagem...';
+      case LoadingStage.analyzingRisk:
+        return 'Analisando nível de risco...';
+      case LoadingStage.generatingSolution:
+        return 'Gerando solução por IA...';
+      case LoadingStage.addingPoints:
+        return 'Adicionando 30 pontos...';
+      case LoadingStage.success:
+        return 'Reportagem criada!';
+    }
+  }
+
+  String _getStageDescription() {
+    switch (_currentStage) {
+      case LoadingStage.uploadingImage:
+        return 'Preparando sua evidência fotográfica';
+      case LoadingStage.analyzingRisk:
+        return 'IA avaliando a gravidade do risco';
+      case LoadingStage.generatingSolution:
+        return 'Criando recomendações personalizadas';
+      case LoadingStage.addingPoints:
+        return 'Recompensando sua contribuição';
+      case LoadingStage.success:
+        return 'Tudo pronto! Parabéns pela contribuição';
+    }
+  }
+
+  IconData _getStageIcon() {
+    switch (_currentStage) {
+      case LoadingStage.uploadingImage:
+        return Icons.cloud_upload_outlined;
+      case LoadingStage.analyzingRisk:
+        return Icons.analytics_outlined;
+      case LoadingStage.generatingSolution:
+        return Icons.lightbulb_outline;
+      case LoadingStage.addingPoints:
+        return Icons.stars_outlined;
+      case LoadingStage.success:
+        return Icons.check_circle_outline;
+    }
+  }
+
+  Color _getStageColor() {
+    switch (_currentStage) {
+      case LoadingStage.uploadingImage:
+        return Colors.blue;
+      case LoadingStage.analyzingRisk:
+        return Colors.orange;
+      case LoadingStage.generatingSolution:
+        return Colors.purple;
+      case LoadingStage.addingPoints:
+        return Colors.amber;
+      case LoadingStage.success:
+        return Colors.green;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(30),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white,
+              _getStageColor().withOpacity(0.05),
+            ],
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Animated Icon
+            ScaleTransition(
+              scale: _scaleAnimation,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      _getStageColor().withOpacity(0.8),
+                      _getStageColor(),
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _getStageColor().withOpacity(0.3),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  _getStageIcon(),
+                  size: 50,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 30),
+
+            // Stage Title
+            Text(
+              _getStageTitle(),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: _getStageColor(),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+
+            // Stage Description
+            Text(
+              _getStageDescription(),
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 30),
+
+            // Progress Indicator or Success Check
+            if (_currentStage != LoadingStage.success)
+              SizedBox(
+                width: 40,
+                height: 40,
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(_getStageColor()),
+                  strokeWidth: 3,
+                ),
+              )
+            else
+              Icon(
+                Icons.check_circle,
+                size: 40,
+                color: _getStageColor(),
+              ),
+            const SizedBox(height: 20),
+
+            // Progress Steps
+            _buildProgressSteps(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProgressSteps() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _buildProgressDot(LoadingStage.uploadingImage),
+        _buildProgressLine(LoadingStage.uploadingImage),
+        _buildProgressDot(LoadingStage.analyzingRisk),
+        _buildProgressLine(LoadingStage.analyzingRisk),
+        _buildProgressDot(LoadingStage.generatingSolution),
+        _buildProgressLine(LoadingStage.generatingSolution),
+        _buildProgressDot(LoadingStage.addingPoints),
+        _buildProgressLine(LoadingStage.addingPoints),
+        _buildProgressDot(LoadingStage.success),
+      ],
+    );
+  }
+
+  Widget _buildProgressDot(LoadingStage stage) {
+    bool isActive = _currentStage.index >= stage.index;
+    bool isCurrent = _currentStage == stage;
+
+    return Container(
+      width: isCurrent ? 12 : 8,
+      height: isCurrent ? 12 : 8,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isActive ? _getStageColor() : Colors.grey.shade300,
+        boxShadow: isCurrent
+            ? [
+                BoxShadow(
+                  color: _getStageColor().withOpacity(0.5),
+                  blurRadius: 8,
+                  spreadRadius: 2,
+                ),
+              ]
+            : [],
+      ),
+    );
+  }
+
+  Widget _buildProgressLine(LoadingStage stage) {
+    bool isActive = _currentStage.index > stage.index;
+
+    return Container(
+      width: 20,
+      height: 2,
+      color: isActive ? _getStageColor() : Colors.grey.shade300,
     );
   }
 }

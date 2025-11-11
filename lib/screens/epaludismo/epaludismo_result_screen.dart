@@ -12,17 +12,48 @@ class MalariaResultScreen extends StatefulWidget {
   State<MalariaResultScreen> createState() => _MalariaResultScreenState();
 }
 
-class _MalariaResultScreenState extends State<MalariaResultScreen> {
+class _MalariaResultScreenState extends State<MalariaResultScreen>
+    with SingleTickerProviderStateMixin {
   String probabilityResult = 'Analisando...';
   bool isLoading = true;
   String errorMessage = '';
   String explanation = '';
   Color _resultColor = Colors.grey; // Default color
+  late AnimationController _animationController;
+  late Animation<double> _pulseAnimation;
+  late Animation<double> _rotationAnimation;
 
   @override
   void initState() {
     super.initState();
+
+    // Initialize animation controller
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+
+    // Pulse animation for the loading text and circle
+    _pulseAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    // Rotation animation for the loading indicator
+    _rotationAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      _animationController,
+    );
+
+    _animationController.repeat(reverse: true);
     _getMalariaProbability();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   // Function to determine the color based on probability
@@ -69,6 +100,9 @@ class _MalariaResultScreenState extends State<MalariaResultScreen> {
           _setResultColor(percentage?.toDouble() ?? 0.0);
           isLoading = false;
         });
+
+        // Stop the loading animation
+        _animationController.stop();
       } else {
         setState(() {
           probabilityResult = 'N/A';
@@ -79,6 +113,9 @@ class _MalariaResultScreenState extends State<MalariaResultScreen> {
           isLoading = false;
           _resultColor = Colors.grey;
         });
+
+        // Stop the loading animation
+        _animationController.stop();
       }
     } catch (e) {
       setState(() {
@@ -90,6 +127,9 @@ class _MalariaResultScreenState extends State<MalariaResultScreen> {
         isLoading = false;
         _resultColor = Colors.grey;
       });
+
+      // Stop the loading animation
+      _animationController.stop();
     }
   }
 
@@ -122,45 +162,8 @@ class _MalariaResultScreenState extends State<MalariaResultScreen> {
           children: [
             const SizedBox(height: 30),
             Center(
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    width: 150,
-                    height: 150,
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(_resultColor
-                          .withOpacity(0.2)), // Lighter ring for background
-                      backgroundColor: Colors.transparent,
-                      strokeWidth: 10,
-                      value: 1.0, // Full circle for background
-                    ),
-                  ),
-                  SizedBox(
-                    width: 150,
-                    height: 150,
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(_resultColor),
-                      backgroundColor: Colors.transparent,
-                      strokeWidth: 10,
-                      value: isLoading
-                          ? 0.0 // No progress while loading
-                          : (double.tryParse(
-                                      probabilityResult.replaceAll('%', '')) ??
-                                  0.0) /
-                              100,
-                    ),
-                  ),
-                  Text(
-                    isLoading ? '...' : probabilityResult,
-                    style: TextStyle(
-                      fontSize: 48, // Larger font size for the percentage
-                      fontWeight: FontWeight.bold,
-                      color: _resultColor,
-                    ),
-                  ),
-                ],
-              ),
+              child:
+                  isLoading ? _buildLoadingAnimation() : _buildResultCircle(),
             ),
             const SizedBox(height: 30),
             Text(
@@ -231,7 +234,6 @@ class _MalariaResultScreenState extends State<MalariaResultScreen> {
                 );
                 final Uri uriToLaunch =
                     googleMapsUri; // Choose which URI to try
-
                 print('Attempting to launch URL: $uriToLaunch');
 
                 try {
@@ -332,6 +334,161 @@ class _MalariaResultScreenState extends State<MalariaResultScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // Build loading animation widget
+  Widget _buildLoadingAnimation() {
+    return AnimatedBuilder(
+      animation: _animationController,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _pulseAnimation.value,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Outer spinning circle
+              SizedBox(
+                width: 180,
+                height: 180,
+                child: RotationTransition(
+                  turns: _rotationAnimation,
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Colors.red.withOpacity(0.3),
+                    ),
+                    backgroundColor: Colors.grey.withOpacity(0.1),
+                    strokeWidth: 3,
+                  ),
+                ),
+              ),
+              // Middle spinning circle (counter-rotation)
+              SizedBox(
+                width: 150,
+                height: 150,
+                child: RotationTransition(
+                  turns: Tween<double>(begin: 1.0, end: 0.0)
+                      .animate(_animationController),
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Colors.red.withOpacity(0.5),
+                    ),
+                    backgroundColor: Colors.transparent,
+                    strokeWidth: 4,
+                  ),
+                ),
+              ),
+              // Inner pulsing circle
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.red.withOpacity(0.1 * _pulseAnimation.value),
+                  border: Border.all(
+                    color: Colors.red.withOpacity(0.3),
+                    width: 2,
+                  ),
+                ),
+              ),
+              // Center icon and text
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.analytics_outlined,
+                    size: 40,
+                    color: Colors.red.withOpacity(0.8),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Analisando',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red.withOpacity(0.9),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    width: 80,
+                    child: LinearProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Colors.red.withOpacity(0.7),
+                      ),
+                      backgroundColor: Colors.grey.withOpacity(0.2),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // Build result circle widget
+  Widget _buildResultCircle() {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        SizedBox(
+          width: 150,
+          height: 150,
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(
+              _resultColor.withOpacity(0.2),
+            ),
+            backgroundColor: Colors.transparent,
+            strokeWidth: 10,
+            value: 1.0,
+          ),
+        ),
+        SizedBox(
+          width: 150,
+          height: 150,
+          child: TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 1500),
+            curve: Curves.easeOutCubic,
+            tween: Tween<double>(
+              begin: 0.0,
+              end: (double.tryParse(probabilityResult.replaceAll('%', '')) ??
+                      0.0) /
+                  100,
+            ),
+            builder: (context, value, child) {
+              return CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(_resultColor),
+                backgroundColor: Colors.transparent,
+                strokeWidth: 10,
+                value: value,
+              );
+            },
+          ),
+        ),
+        TweenAnimationBuilder<double>(
+          duration: const Duration(milliseconds: 1500),
+          curve: Curves.easeOutCubic,
+          tween: Tween<double>(begin: 0.0, end: 1.0),
+          builder: (context, value, child) {
+            return Opacity(
+              opacity: value,
+              child: Transform.scale(
+                scale: 0.8 + (0.2 * value),
+                child: Text(
+                  probabilityResult,
+                  style: TextStyle(
+                    fontSize: 48,
+                    fontWeight: FontWeight.bold,
+                    color: _resultColor,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }

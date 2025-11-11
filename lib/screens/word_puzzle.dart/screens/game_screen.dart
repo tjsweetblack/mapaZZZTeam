@@ -14,7 +14,8 @@ class GameScreen extends StatelessWidget {
   // Using a local buildDivider for self-containment, or ensure the helper is correctly imported.
   Widget _buildThemedDivider() {
     return const Divider(
-      color: Color.fromARGB(255, 200, 200, 200), // Lighter grey for better contrast
+      color: Color.fromARGB(
+          255, 200, 200, 200), // Lighter grey for better contrast
       height: 30, // More vertical space
       thickness: 1.5, // Slightly thicker
       indent: 30, // More indent
@@ -42,26 +43,30 @@ class GameScreen extends StatelessWidget {
       builder: (BuildContext context, StateSetter setState) {
         List<String> foundWords = [];
         return Scaffold(
-          backgroundColor: const Color.fromARGB(255, 250, 250, 250), // Soft off-white background
+          backgroundColor: const Color.fromARGB(
+              255, 250, 250, 250), // Soft off-white background
           appBar: AppBar(
             title: Text(
               "Sopa de Letras - ${level.title}",
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 20,
-                color: Color.fromARGB(255, 139, 0, 0), // Dark red for app bar title
+                color: Color.fromARGB(
+                    255, 139, 0, 0), // Dark red for app bar title
               ),
             ),
             centerTitle: true,
             backgroundColor: Colors.transparent, // Transparent app bar
             elevation: 0, // No shadow
-            iconTheme: const IconThemeData(color: Color.fromARGB(255, 139, 0, 0)), // Back button color
+            iconTheme: const IconThemeData(
+                color: Color.fromARGB(255, 139, 0, 0)), // Back button color
           ),
           body: Column(
             children: [
               // Title for the words to find
               Padding(
-                padding: const EdgeInsets.fromLTRB(20.0, 15.0, 20.0, 10.0), // Adjusted padding
+                padding: const EdgeInsets.fromLTRB(
+                    20.0, 15.0, 20.0, 10.0), // Adjusted padding
                 child: Text(
                   "PALAVRAS PARA ACHAR:",
                   style: TextStyle(
@@ -80,19 +85,23 @@ class GameScreen extends StatelessWidget {
               ),
               // List of words to find
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 5.0),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 15.0, vertical: 5.0),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50, // Very light red background for the word list
+                  color: Colors.red
+                      .shade50, // Very light red background for the word list
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: Colors.red.shade100),
                 ),
-                margin: const EdgeInsets.symmetric(horizontal: 20.0), // Margin around the container
+                margin: const EdgeInsets.symmetric(
+                    horizontal: 20.0), // Margin around the container
                 child: GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3, // More columns for better spacing
-                    childAspectRatio: 3 / 1.2, // Adjust aspect ratio for word fit
+                    childAspectRatio:
+                        3 / 1.2, // Adjust aspect ratio for word fit
                     mainAxisSpacing: 5.0,
                     crossAxisSpacing: 5.0,
                   ),
@@ -102,23 +111,30 @@ class GameScreen extends StatelessWidget {
                     final isFound = foundWords.contains(word);
                     return Center(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 4.0, horizontal: 8.0),
                         decoration: BoxDecoration(
-                          color: isFound ? Colors.red.shade200 : Colors.transparent, // Highlight found words
+                          color: isFound
+                              ? Colors.red.shade200
+                              : Colors.transparent, // Highlight found words
                           borderRadius: BorderRadius.circular(5),
                         ),
                         child: Text(
                           word.toUpperCase(), // Display words in uppercase
                           style: TextStyle(
                             fontSize: 15, // Slightly larger font for words
-                            fontWeight: isFound ? FontWeight.bold : FontWeight.normal,
+                            fontWeight:
+                                isFound ? FontWeight.bold : FontWeight.normal,
                             color: isFound
-                                ? Color.fromARGB(255, 139, 0, 0) // Dark red for found words
-                                : Colors.black87, // Slightly softer black for unfound words
+                                ? Color.fromARGB(
+                                    255, 139, 0, 0) // Dark red for found words
+                                : Colors
+                                    .black87, // Slightly softer black for unfound words
                             decoration: isFound
                                 ? TextDecoration.lineThrough
                                 : TextDecoration.none,
-                            decorationColor: Color.fromARGB(255, 139, 0, 0), // Red line-through
+                            decorationColor: Color.fromARGB(
+                                255, 139, 0, 0), // Red line-through
                             decorationThickness: 2,
                           ),
                         ),
@@ -135,8 +151,10 @@ class GameScreen extends StatelessWidget {
                     width: MediaQuery.of(context).size.width * 0.95,
                     height: MediaQuery.of(context).size.width * 0.95,
                     decoration: BoxDecoration(
-                      color: Colors.white, // White background for the puzzle grid
-                      borderRadius: BorderRadius.circular(15), // Rounded corners for the puzzle
+                      color:
+                          Colors.white, // White background for the puzzle grid
+                      borderRadius: BorderRadius.circular(
+                          15), // Rounded corners for the puzzle
                       boxShadow: [
                         BoxShadow(
                           color: Colors.grey.shade300,
@@ -146,7 +164,8 @@ class GameScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: ClipRRect( // Clip to prevent the puzzle from overflowing rounded corners
+                    child: ClipRRect(
+                      // Clip to prevent the puzzle from overflowing rounded corners
                       borderRadius: BorderRadius.circular(15),
                       child: FindTheWord(
                         words: gameWords,
@@ -160,9 +179,11 @@ class GameScreen extends StatelessWidget {
                               content: Text(
                                 "Você encontrou: ${word.toUpperCase()}!",
                                 style: const TextStyle(
-                                    color: Colors.white, fontWeight: FontWeight.bold),
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold),
                               ),
-                              backgroundColor: Color.fromARGB(255, 178, 34, 34), // Themed snackbar
+                              backgroundColor: Color.fromARGB(
+                                  255, 178, 34, 34), // Themed snackbar
                               duration: const Duration(seconds: 1),
                             ),
                           );
@@ -176,7 +197,8 @@ class GameScreen extends StatelessWidget {
                                   builder: (_) => ResultScreen(
                                     level: level.title,
                                     total: gameWords.length,
-                                    found: foundWords.length, // Pass found words count
+                                    found: foundWords
+                                        .length, // Pass found words count
                                   ),
                                 ),
                               );
@@ -187,7 +209,7 @@ class GameScreen extends StatelessWidget {
                           // This onFinish might trigger too early if all words are found via onWordFound.
                           // The check for all words found should ideally be within onWordFound.
                           // I've moved the navigation logic there for better control.
-                           if (foundWords.length == gameWords.length) {
+                          if (foundWords.length == gameWords.length) {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
@@ -198,7 +220,7 @@ class GameScreen extends StatelessWidget {
                                 ),
                               ),
                             );
-                           }
+                          }
                         },
                       ),
                     ),

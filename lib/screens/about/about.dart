@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AboutPage extends StatelessWidget {
+  Future<void> _launchPrivacyPolicy() async {
+    final Uri url = Uri.parse('https://ma-pa-zzz.tech/privacy-policy');
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      debugPrint('Could not launch $url');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -194,11 +202,56 @@ class AboutPage extends StatelessWidget {
               ),
               const SizedBox(height: 5.0),
               const Text(
-                'info@ma-pa-zzz.com', // Contact Email
+                'info@ma-pa-zzz.tech', // Contact Email
                 style: TextStyle(
                   fontSize: 16.0,
                   fontWeight: FontWeight.bold,
                   color: Colors.blue, // Keeping the email address blue
+                ),
+              ),
+              const SizedBox(height: 20.0),
+              const Text(
+                'Política de Privacidade',
+                style: TextStyle(
+                  fontSize: 24.0,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+              const SizedBox(height: 10.0),
+              const Text(
+                'Levamos sua privacidade a sério. Para mais informações sobre como coletamos, usamos e protegemos seus dados, consulte nossa política de privacidade completa:',
+                style: TextStyle(fontSize: 16.0),
+              ),
+              const SizedBox(height: 10.0),
+              InkWell(
+                onTap: () => _launchPrivacyPolicy(),
+                child: Container(
+                  padding: const EdgeInsets.all(12.0),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red, width: 1),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.privacy_tip_outlined, color: Colors.red),
+                      SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'Ver Política de Privacidade',
+                          style: TextStyle(
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(Icons.open_in_new, color: Colors.red, size: 18),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 20.0),

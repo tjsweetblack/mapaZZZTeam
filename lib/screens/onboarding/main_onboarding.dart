@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:auth_bloc/routing/routes.dart';
 
-
 // mainOnboarding widget
 class mainOnboarding extends StatefulWidget {
   const mainOnboarding({super.key});
@@ -105,7 +104,8 @@ class _mainOnboardingState extends State<mainOnboarding> {
                       padding: const EdgeInsets.only(right: 20.0),
                       child: SizedBox(
                         width: 50, // Fixed width for the rounded square button
-                        height: 50, // Fixed height for the rounded square button
+                        height:
+                            50, // Fixed height for the rounded square button
                         child: ElevatedButton(
                           onPressed: _nextPage,
                           style: ElevatedButton.styleFrom(
@@ -117,7 +117,8 @@ class _mainOnboardingState extends State<mainOnboarding> {
                             padding: EdgeInsets.zero, // Remove default padding
                           ),
                           child: const Icon(
-                            Icons.arrow_forward_rounded, // Use a forward arrow icon
+                            Icons
+                                .arrow_forward_rounded, // Use a forward arrow icon
                             size: 30,
                           ),
                         ),

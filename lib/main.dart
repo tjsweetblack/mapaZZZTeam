@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:auth_bloc/api/firebase_api.dart';
 import 'package:auth_bloc/cubits/language_cubit.dart';
 import 'package:auth_bloc/firebase_options.dart';
@@ -113,7 +114,7 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   bool _isLoading = true;
   List<Map<String, dynamic>> _riskZones = [];
   Timer? _locationCheckTimer;
@@ -235,16 +236,16 @@ class _MyAppState extends State<MyApp> {
       String riskMessage;
       switch (highestRiskLevel) {
         case 1:
-          riskMessage = 'Está numa zona de baixo risco.';
+          riskMessage = 'Está em uma zona de baixo risco.';
           break;
         case 2:
-          riskMessage = 'Está numa zona de médio risco.';
+          riskMessage = 'Está em uma zona de médio risco.';
           break;
         case 3:
-          riskMessage = 'Está numa zona de alto risco.';
+          riskMessage = 'Está em uma zona de alto risco.';
           break;
         default:
-          riskMessage = 'Está numa zona sem risco.';
+          riskMessage = 'Está em uma zona sem risco.';
           break;
       }
 
@@ -323,13 +324,15 @@ class _MyAppState extends State<MyApp> {
       try {
         String? token = await FirebaseMessaging.instance.getToken();
         if (token != null) {
-          print("FCM Token: $token");
+          print("🔥 FCM Token retrieved in main.dart: $token");
+          print(
+              "📱 Platform: ${Platform.isIOS ? 'iOS' : Platform.isAndroid ? 'Android' : 'Other'}");
           // Save this token to your server if needed
         } else {
-          print("FCM Token is null - this is normal in iOS simulator");
+          print("⚠️ FCM Token is null - this is normal in iOS simulator");
         }
       } catch (tokenError) {
-        print("Error getting FCM token (normal in simulator): $tokenError");
+        print("❌ Error getting FCM token (normal in simulator): $tokenError");
         // This is expected in iOS simulator - don't treat as fatal error
       }
 
@@ -381,6 +384,7 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     print("MyApp initState started");
+    WidgetsBinding.instance.addObserver(this);
     _initializeAppSequentially();
   }
 
@@ -473,7 +477,44 @@ class _MyAppState extends State<MyApp> {
   @override
   void dispose() {
     _locationCheckTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    print('App lifecycle state changed to: $state');
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        print('App resumed - handling background return');
+        // App is in the foreground and responding to user input
+        // Clear any cached images to free memory
+        imageCache.clear();
+        break;
+      case AppLifecycleState.inactive:
+        print('App inactive - preparing for background');
+        // App is transitioning between foreground and background
+        break;
+      case AppLifecycleState.paused:
+        print('App paused - in background');
+        // App is in the background and not visible to user
+        // Clear memory-intensive resources
+        imageCache.clearLiveImages();
+        break;
+      case AppLifecycleState.detached:
+        print('App detached - being terminated');
+        // App is being terminated
+        imageCache.clear();
+        break;
+      case AppLifecycleState.hidden:
+        print('App hidden');
+        // App is hidden but may still be running
+        // Reduce memory footprint
+        imageCache.clearLiveImages();
+        break;
+    }
   }
 
   @override

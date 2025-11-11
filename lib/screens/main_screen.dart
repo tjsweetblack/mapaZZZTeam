@@ -144,16 +144,16 @@ class _MapZzzPageState extends State<MapZzzPage> {
       String initialRiskText;
       switch (highestRiskLevel) {
         case 1:
-          initialRiskText = 'Você está numa zona de baixo risco.';
+          initialRiskText = 'Você está em uma zona de baixo risco.';
           break;
         case 2:
-          initialRiskText = 'Você está numa zona de médio risco.';
+          initialRiskText = 'Você está em uma zona de médio risco.';
           break;
         case 3:
-          initialRiskText = 'Você está numa zona de alto risco.';
+          initialRiskText = 'Você está em uma zona de alto risco.';
           break;
         default: // riskLevel is 0
-          initialRiskText = 'Você está numa zona sem risco.';
+          initialRiskText = 'Você está em uma zona sem risco.';
           break;
       }
 
@@ -796,7 +796,7 @@ class _ReportListState extends State<ReportList> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        report['location'],
+                        "ver detalhes",
                         style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       ),
                     ],

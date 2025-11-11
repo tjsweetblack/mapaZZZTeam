@@ -1,10 +1,19 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../theming/styles.dart';
 
 class TermsAndConditionsText extends StatelessWidget {
   const TermsAndConditionsText({super.key});
+
+  Future<void> _launchPrivacyPolicy() async {
+    final Uri url = Uri.parse('https://ma-pa-zzz.tech/privacy-policy');
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      debugPrint('Could not launch $url');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +27,13 @@ class TermsAndConditionsText extends StatelessWidget {
           ),
           TextSpan(
             text: ' Terms & Conditions',
-            style: TextStyles.font11DarkBlue500Weight,
+            style: TextStyles.font11DarkBlue500Weight.copyWith(
+              decoration: TextDecoration.underline,
+            ),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () {
+                _launchPrivacyPolicy();
+              },
           ),
           TextSpan(
             text: ' and',
@@ -26,8 +41,14 @@ class TermsAndConditionsText extends StatelessWidget {
                 .copyWith(height: 4.h),
           ),
           TextSpan(
-            text: ' PrivacyPolicy.',
-            style: TextStyles.font11DarkBlue500Weight,
+            text: ' Privacy Policy.',
+            style: TextStyles.font11DarkBlue500Weight.copyWith(
+              decoration: TextDecoration.underline,
+            ),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () {
+                _launchPrivacyPolicy();
+              },
           ),
         ],
       ),

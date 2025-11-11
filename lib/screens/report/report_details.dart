@@ -793,21 +793,21 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
                                 fontSize: 20, fontWeight: FontWeight.bold),
                           ),
                           SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Icon(Icons.location_on, color: Colors.red),
-                              SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  widget.report['location'] ??
-                                      'Localização Desconhecida', // Use fallback
-                                  softWrap: true,
-                                ),
-                              ),
-                              Spacer(),
-                            ],
-                          ),
-                          SizedBox(height: 8),
+                          // Row(
+                          //   children: [
+                          //     Icon(Icons.location_on, color: Colors.red),
+                          //     SizedBox(width: 4),
+                          //     Expanded(
+                          //       child: Text(
+                          //         widget.report['location'] ??
+                          //             'Localização Desconhecida', // Use fallback
+                          //         softWrap: true,
+                          //       ),
+                          //     ),
+                          //     Spacer(),
+                          //   ],
+                          // ),
+                          // SizedBox(height: 8),
                           // Button to view location on map (using WebView)
                           TextButton.icon(
                             onPressed: () async {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 class ProgressIndicator {
   static void showProgressIndicator(BuildContext context) {
     showDialog(

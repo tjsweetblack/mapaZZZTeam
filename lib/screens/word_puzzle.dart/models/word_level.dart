@@ -6,9 +6,7 @@ class WordLevel {
 
 // Renomeie 'levels' para 'wordLevels' para manter consistência com 'home_screen.dart'
 final List<WordLevel> wordLevels = [
-  WordLevel(
-    title: 'Nível 1 - Fácil', 
-    words: [ 'REDE', 'RIR']),
+  WordLevel(title: 'Nível 1 - Fácil', words: ['REDE', 'RIR']),
   WordLevel(
     title: 'Nível 2 - Médio',
     words: ['PARASITA', 'SINTOMA', 'POSTO', 'REPELENTE'],

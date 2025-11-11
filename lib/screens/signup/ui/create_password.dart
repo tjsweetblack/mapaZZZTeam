@@ -24,9 +24,11 @@ class CreatePasswordScreen extends StatefulWidget {
 
 class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
   bool _isPasswordVisible = false; // For password visibility toggle
-  bool _isConfirmPasswordVisible = false; // For confirm password visibility toggle
+  bool _isConfirmPasswordVisible =
+      false; // For confirm password visibility toggle
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +132,8 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    if (passwordController.text == confirmPasswordController.text) {
+                    if (passwordController.text ==
+                        confirmPasswordController.text) {
                       context.read<AuthCubit>().signUpWithEmail(
                           widget.fullName,
                           widget.emailOrPhone,
@@ -274,4 +277,3 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
     );
   }
 }
-

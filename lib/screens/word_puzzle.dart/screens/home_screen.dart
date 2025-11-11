@@ -8,7 +8,8 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 255, 240, 240), // Very light red/pink background
+      backgroundColor: const Color.fromARGB(
+          255, 255, 240, 240), // Very light red/pink background
       appBar: AppBar(
         title: const Text(
           'Sopa de Letras - Malária',
@@ -25,7 +26,8 @@ class HomeScreen extends StatelessWidget {
       ),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0), // More horizontal padding
+          padding: const EdgeInsets.symmetric(
+              horizontal: 24.0, vertical: 16.0), // More horizontal padding
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
@@ -43,7 +45,8 @@ class HomeScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 28, // Larger font size
                   fontWeight: FontWeight.w900, // Extra bold
-                  color: Color.fromARGB(255, 178, 34, 34), // Firebrick red for main text
+                  color: Color.fromARGB(
+                      255, 178, 34, 34), // Firebrick red for main text
                   shadows: [
                     Shadow(
                       blurRadius: 4.0,
@@ -62,7 +65,8 @@ class HomeScreen extends StatelessWidget {
                 itemCount: wordLevels.length,
                 itemBuilder: (context, index) {
                   return Container(
-                    margin: const EdgeInsets.symmetric(vertical: 10.0), // Increased vertical margin
+                    margin: const EdgeInsets.symmetric(
+                        vertical: 10.0), // Increased vertical margin
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
@@ -72,10 +76,12 @@ class HomeScreen extends StatelessWidget {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(15), // More rounded corners
+                      borderRadius:
+                          BorderRadius.circular(15), // More rounded corners
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.red.shade200.withOpacity(0.6), // Red shadow
+                          color: Colors.red.shade200
+                              .withOpacity(0.6), // Red shadow
                           spreadRadius: 2,
                           blurRadius: 8,
                           offset: const Offset(0, 4),
@@ -83,19 +89,25 @@ class HomeScreen extends StatelessWidget {
                       ],
                     ),
                     child: Material(
-                      color: Colors.transparent, // Make Material widget transparent
+                      color: Colors
+                          .transparent, // Make Material widget transparent
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(15), // Match inkwell border radius
+                        borderRadius: BorderRadius.circular(
+                            15), // Match inkwell border radius
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => GameScreen(level: wordLevels[index]),
+                              builder: (_) =>
+                                  GameScreen(level: wordLevels[index]),
                             ),
                           );
                         },
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 18.0, horizontal: 20.0), // More padding inside list tile
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 18.0,
+                              horizontal:
+                                  20.0), // More padding inside list tile
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -104,10 +116,13 @@ class HomeScreen extends StatelessWidget {
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 20, // Slightly larger font
-                                  color: Color.fromARGB(255, 139, 0, 0), // Dark red for level titles
+                                  color: Color.fromARGB(255, 139, 0,
+                                      0), // Dark red for level titles
                                 ),
                               ),
-                              Icon(Icons.play_circle_fill, color: Color.fromARGB(255, 139, 0, 0), size: 30), // Play icon in dark red
+                              Icon(Icons.play_circle_fill,
+                                  color: Color.fromARGB(255, 139, 0, 0),
+                                  size: 30), // Play icon in dark red
                             ],
                           ),
                         ),

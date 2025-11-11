@@ -13,6 +13,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:auth_bloc/logic/cubit/auth_cubit.dart';
 import 'package:auth_bloc/routing/routes.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+Future<void> _launchPrivacyPolicy() async {
+  final Uri url = Uri.parse('https://ma-pa-zzz.tech/privacy-policy');
+  if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+    debugPrint('Could not launch $url');
+  }
+}
 
 Widget buildAppDrawer(BuildContext context) {
   final screenWidth = MediaQuery.of(context).size.width;
@@ -175,6 +183,21 @@ Widget buildAppDrawer(BuildContext context) {
                     );
                   },
                 ),
+                ListTile(
+                  leading: const Icon(Icons.privacy_tip_outlined, color: Colors.red),
+                  title: const Text(
+                    'Política de Privacidade',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context); // Close the drawer
+                    _launchPrivacyPolicy();
+                  },
+                ),
               ],
             ),
           ),
@@ -184,29 +207,37 @@ Widget buildAppDrawer(BuildContext context) {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Image.asset(
+                  'assets/images/42logo.png',
+                  height: 40,
+                ),
+                const SizedBox(height: 12),
                 const Text(
-                  'MapaZZZ',
+                  'Criado por grupo sudoZZZ',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Colors.black,
+                    color: Colors.black87,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.star, color: Colors.red, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Rua 13 Av. Al, Talatona\nLuanda - Angola',
-                      style: TextStyle(
-                        color: Colors.grey[700],
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 4),
+                const Text(
+                  'Membros:',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black54,
+                  ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 2),
+                const Text(
+                  'Belmiro Adriano\nDamasio Caliqui\nAlfredo Manuel\nAurora Simão',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.black54,
+                    height: 1.4,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 OutlinedButton(
                   onPressed: () async {

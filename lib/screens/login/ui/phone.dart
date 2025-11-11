@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-
 class PhoneAuthScreen extends StatefulWidget {
   const PhoneAuthScreen({super.key});
 
@@ -38,8 +37,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) =>
-                    OTPScreen(verificationId: verificationId),
+                builder: (context) => OTPScreen(verificationId: verificationId),
               ),
             );
           },

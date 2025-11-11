@@ -51,7 +51,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildLoginPage(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20), // Adjust padding for spacing
+      padding:
+          EdgeInsets.symmetric(horizontal: 20), // Adjust padding for spacing
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -25,7 +25,8 @@ class _FindTheWordState extends State<FindTheWord> {
   late List<List<String>> _board;
   late List<String> _remainingWords;
   Set<Offset> _selectedLetters = {};
-  Set<Offset> _foundLettersCoordinates = {}; // <-- NOVO: Armazena as coordenadas das letras encontradas
+  Set<Offset> _foundLettersCoordinates =
+      {}; // <-- NOVO: Armazena as coordenadas das letras encontradas
   String _currentWordSelection = '';
 
   @override
@@ -36,7 +37,8 @@ class _FindTheWordState extends State<FindTheWord> {
 
   void _initializeGame() {
     _remainingWords = List.from(widget.words.map((word) => word.toUpperCase()));
-    _board = List.generate(widget.boardSize, (_) => List.filled(widget.boardSize, ''));
+    _board = List.generate(
+        widget.boardSize, (_) => List.filled(widget.boardSize, ''));
     _fillBoardWithWords();
     _fillRemainingWithRandomLetters();
   }
@@ -49,7 +51,8 @@ class _FindTheWordState extends State<FindTheWord> {
       while (!placed && attempts < 100) {
         int row = random.nextInt(widget.boardSize);
         int col = random.nextInt(widget.boardSize);
-        int direction = random.nextInt(2); // Apenas direções 0 (horizontal) e 1 (vertical)
+        int direction =
+            random.nextInt(2); // Apenas direções 0 (horizontal) e 1 (vertical)
 
         if (_canPlaceWord(word, row, col, direction)) {
           _placeWord(word, row, col, direction);
@@ -69,10 +72,20 @@ class _FindTheWordState extends State<FindTheWord> {
       int c = startCol;
 
       switch (direction) {
-        case 0: c += i; break; // Horizontal
-        case 1: r += i; break; // Vertical
-        case 2: r += i; c += i; break; // Diagonal (\)
-        case 3: r += i; c -= i; break; // Diagonal (/)
+        case 0:
+          c += i;
+          break; // Horizontal
+        case 1:
+          r += i;
+          break; // Vertical
+        case 2:
+          r += i;
+          c += i;
+          break; // Diagonal (\)
+        case 3:
+          r += i;
+          c -= i;
+          break; // Diagonal (/)
       }
 
       if (r < 0 || r >= widget.boardSize || c < 0 || c >= widget.boardSize) {
@@ -91,10 +104,20 @@ class _FindTheWordState extends State<FindTheWord> {
       int c = startCol;
 
       switch (direction) {
-        case 0: c += i; break;
-        case 1: r += i; break;
-        case 2: r += i; c += i; break;
-        case 3: r += i; c -= i; break;
+        case 0:
+          c += i;
+          break;
+        case 1:
+          r += i;
+          break;
+        case 2:
+          r += i;
+          c += i;
+          break;
+        case 3:
+          r += i;
+          c -= i;
+          break;
       }
       _board[r][c] = word[i];
     }
@@ -136,9 +159,13 @@ class _FindTheWordState extends State<FindTheWord> {
     int col = (localPosition.dx / cellSize).floor();
     int row = (localPosition.dy / cellSize).floor();
 
-    if (row >= 0 && row < widget.boardSize && col >= 0 && col < widget.boardSize) {
+    if (row >= 0 &&
+        row < widget.boardSize &&
+        col >= 0 &&
+        col < widget.boardSize) {
       Offset currentCell = Offset(col.toDouble(), row.toDouble());
-      if (!_selectedLetters.contains(currentCell)) { // REMOVEMOS: !_foundLettersCoordinates.contains(currentCell)
+      if (!_selectedLetters.contains(currentCell)) {
+        // REMOVEMOS: !_foundLettersCoordinates.contains(currentCell)
         setState(() {
           _selectedLetters.add(currentCell);
           _currentWordSelection += _board[row][col];
@@ -190,10 +217,12 @@ class _FindTheWordState extends State<FindTheWord> {
                 int row = index ~/ widget.boardSize;
                 int col = index % widget.boardSize;
                 String char = _board[row][col];
-                Offset currentCellCoord = Offset(col.toDouble(), row.toDouble());
+                Offset currentCellCoord =
+                    Offset(col.toDouble(), row.toDouble());
 
                 bool isSelected = _selectedLetters.contains(currentCellCoord);
-                bool isFound = _foundLettersCoordinates.contains(currentCellCoord); // <-- NOVO: Verifica se a letra faz parte de uma palavra encontrada
+                bool isFound = _foundLettersCoordinates.contains(
+                    currentCellCoord); // <-- NOVO: Verifica se a letra faz parte de uma palavra encontrada
 
                 Color textColor;
                 Color backgroundColor;
@@ -205,13 +234,13 @@ class _FindTheWordState extends State<FindTheWord> {
                 } else if (isFound) {
                   // Cor da letra e fundo quando a palavra já foi encontrada
                   textColor = Colors.white; // Letra branca
-                  backgroundColor = Colors.green; // Palavra encontrada fica verde
+                  backgroundColor =
+                      Colors.green; // Palavra encontrada fica verde
                 } else {
                   // Cor padrão das letras não selecionadas/encontradas
                   textColor = Colors.black87;
                   backgroundColor = Colors.transparent; // Fundo transparente
                 }
-
 
                 return Container(
                   decoration: BoxDecoration(
