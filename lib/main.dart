@@ -260,38 +260,55 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 
   Future<void> _showProximityNotification(int riskLevel) async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
-        AndroidNotificationDetails(
-      'proximity_channel', // Unique channel ID
-      'Proximity Alerts', // Channel name
-      channelDescription: 'Notifications for proximity to risk zones',
-      importance: Importance.high,
-      priority: Priority.high,
-      showWhen: false,
-    );
-    const NotificationDetails platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
-
+    String notificationTitle;
     String notificationMessage;
     switch (riskLevel) {
       case 1:
-        notificationMessage = 'Estás em uma zona de baixo risco.';
+        notificationTitle = 'Zona de baixo risco';
+        notificationMessage =
+            'Mantenha a prevenção: use repelente, elimine água parada e mantenha portas e janelas protegidas.';
         break;
       case 2:
-        notificationMessage = 'Estás em uma zona de médio risco.';
+        notificationTitle = 'Zona de médio risco';
+        notificationMessage =
+            'Reforce a proteção: use roupa comprida, aplique repelente conforme o rótulo e evite locais com muitos mosquitos.';
         break;
       case 3:
-        notificationMessage = 'Estás em uma zona de alto risco.';
+        notificationTitle = 'Zona de alto risco';
+        notificationMessage =
+            'Proteja-se agora: vista roupa comprida, use repelente conforme o rótulo, use redes ou telas e elimine água parada perto de si.';
         break;
       default: // riskLevel is 0 or any other unexpected value
-        notificationMessage = 'Estás em uma área sem risco.';
+        notificationTitle = 'Área sem risco identificado';
+        notificationMessage =
+            'Continue a prevenir: elimine água parada e use proteção contra mosquitos quando necessário.';
         break;
     }
 
+    final AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'proximity_channel',
+      'Alertas de zonas de risco',
+      channelDescription:
+          'Alertas de proximidade com recomendações de prevenção',
+      importance: Importance.high,
+      priority: Priority.high,
+      showWhen: false,
+      styleInformation: BigTextStyleInformation(notificationMessage),
+    );
+    final NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: const DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
+    );
+
     await flutterLocalNotificationsPlugin.show(
       0, // Notification ID
-      'Risco', // Notification Title
-      notificationMessage, // Notification Body (the specific risk message)
+      notificationTitle,
+      notificationMessage,
       platformChannelSpecifics,
       payload: 'proximity_notification',
     );
