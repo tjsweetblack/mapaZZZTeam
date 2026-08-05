@@ -60,35 +60,47 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> signInWithEmail(String email, String password) async {
     emit(AuthLoading());
+    UserCredential userCredential;
     try {
-      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+      userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      if (userCredential.user!.emailVerified) {
-        // Update Firestore lastLogin field
+    } on FirebaseAuthException catch (e) {
+      // Handle specific Firebase auth errors with a user-friendly message for invalid credentials.
+      // Common codes: 'user-not-found', 'wrong-password', 'invalid-email', 'invalid-credential'
+      print('signInWithEmail FirebaseAuthException: ${e.code} - ${e.message}');
+      emit(AuthError(
+          'Credenciais de login inválidas. Por favor, tente novamente.'));
+      return;
+    } catch (e, st) {
+      print('signInWithEmail unexpected error: $e');
+      print(st);
+      emit(
+          AuthError('Ocorreu um erro inesperado. Por favor, tente novamente.'));
+      return;
+    }
+
+    if (userCredential.user!.emailVerified) {
+      // Best-effort bookkeeping: the user is already authenticated at this
+      // point, so a failure here (e.g. Firestore rules/network) must not be
+      // reported as a sign-in error.
+      try {
         await _firestore
             .collection('users')
             .doc(userCredential.user!.uid)
             .update({
           'lastLogin': FieldValue.serverTimestamp(),
         });
-
-        emit(UserSignIn());
-      } else {
-        await _auth.signOut();
-        emit(AuthError(
-            'E-mail não verificado. Por favor, verifique seu e-mail.'));
-        emit(UserNotVerified());
+      } catch (e) {
+        print('Failed to update lastLogin: $e');
       }
-    } on FirebaseAuthException catch (_) {
-      // Handle specific Firebase auth errors with a user-friendly message for invalid credentials.
-      // Common codes: 'user-not-found', 'wrong-password', 'invalid-email', 'invalid-credential'
+      emit(UserSignIn());
+    } else {
+      await _auth.signOut();
       emit(AuthError(
-          'Credenciais de login inválidas. Por favor, tente novamente.'));
-    } catch (e) {
-      emit(
-          AuthError('Ocorreu um erro inesperado. Por favor, tente novamente.'));
+          'E-mail não verificado. Por favor, verifique seu e-mail.'));
+      emit(UserNotVerified());
     }
   }
 

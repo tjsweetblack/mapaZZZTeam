@@ -65,12 +65,12 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
   // step required alongside the OS-level camera permission prompt.
   Future<void> _ensurePhotoAnalysisConsent() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     final alreadyAccepted = prefs.getBool(_kPhotoAnalysisConsentKey) ?? false;
     if (alreadyAccepted) {
       _setupCamera();
       return;
     }
-    if (!mounted) return;
     final accepted = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -99,7 +99,7 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
     );
     if (accepted == true) {
       await prefs.setBool(_kPhotoAnalysisConsentKey, true);
-      _setupCamera();
+      if (mounted) _setupCamera();
     } else if (mounted) {
       Navigator.of(context).pop();
     }
