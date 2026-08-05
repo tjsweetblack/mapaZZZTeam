@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 // Assuming MalariaQuizScreen is defined elsewhere and accepts a 'language' parameter.
 // Example: class MalariaQuizScreen extends StatelessWidget { final String language; const MalariaQuizScreen({super.key, required this.language}); ... }
-import 'package:auth_bloc/screens/quiz/quiz_page.dart';
+import 'package:auth_bloc/features/quiz/ui/screens/quiz_page.dart';
 
 class QuizScreen extends StatelessWidget {
   const QuizScreen({super.key});

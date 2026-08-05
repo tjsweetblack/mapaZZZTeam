@@ -1,4 +1,4 @@
-import 'package:auth_bloc/helpers/extensions.dart';
+import 'package:auth_bloc/core/helpers/extensions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -7,11 +7,11 @@ import 'package:gap/gap.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:rive/rive.dart';
 
-import '../../../helpers/app_regex.dart';
-import '../../../routing/routes.dart';
-import '../../../theming/styles.dart';
-import '../../helpers/rive_controller.dart';
-import '../../logic/cubit/auth_cubit.dart';
+import 'package:auth_bloc/core/helpers/app_regex.dart';
+import 'package:auth_bloc/core/routing/routes.dart';
+import 'package:auth_bloc/core/theming/styles.dart';
+import 'package:auth_bloc/core/helpers/rive_controller.dart';
+import 'package:auth_bloc/features/auth/logic/auth_cubit.dart';
 import 'app_text_button.dart';
 import 'app_text_form_field.dart';
 import 'password_validations.dart';

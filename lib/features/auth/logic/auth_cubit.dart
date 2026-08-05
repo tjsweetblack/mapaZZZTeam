@@ -5,7 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // For Firestore
 // For Authentication
 
-part 'auth_state.dart';
+part 'package:auth_bloc/features/auth/logic/auth_state.dart';
 
 class AuthCubit extends Cubit<AuthState> {
   final FirebaseAuth _auth = FirebaseAuth.instance;

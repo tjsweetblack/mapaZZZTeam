@@ -1,9 +1,9 @@
 import 'dart:ui';
 
-import 'package:auth_bloc/logic/cubit/auth_cubit.dart';
-import 'package:auth_bloc/routing/routes.dart';
+import 'package:auth_bloc/features/auth/logic/auth_cubit.dart';
+import 'package:auth_bloc/core/routing/routes.dart';
 import 'package:auth_bloc/screens/signup/ui/sign_up_sceen.dart';
-import 'package:auth_bloc/theming/styles.dart';
+import 'package:auth_bloc/core/theming/styles.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 

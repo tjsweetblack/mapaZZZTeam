@@ -35,7 +35,15 @@ Com base na descrição dos sintomas fornecida: "${symptomsDescription}", faça 
 6. Se nenhum sintoma da lista estiver presente, responda "0%" e uma explicação breve dizendo que não há sintomas compatíveis com malária.
 `;
 
-app.post('/malaria-probability', async (req, res) => {
+function requireSharedSecret(req, res, next) {
+  const expected = process.env.REPORT_API_SHARED_SECRET;
+  if (!expected || req.header('x-api-key') !== expected) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+}
+
+app.post('/malaria-probability', requireSharedSecret, async (req, res) => {
   const { symptomsDescription } = req.body;
   console.log('Received POST /malaria-probability');
   console.log('Request body:', req.body);

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/word_level.dart'; // Importa a lista wordLevels
-import 'game_screen.dart';
+import 'package:auth_bloc/features/quiz/ui/screens/models/word_level.dart'; // Importa a lista wordLevels
+import 'package:auth_bloc/features/quiz/ui/screens/screens/game_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});

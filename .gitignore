@@ -4,6 +4,11 @@
 *.pyc
 *.swp
 .DS_Store
+
+# Secrets - never commit API keys
+.env
+*/.env
+**/uploads/
 .atom/
 .build/
 .buildlog/

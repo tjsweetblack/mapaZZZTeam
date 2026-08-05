@@ -1,10 +1,10 @@
-import 'package:auth_bloc/helpers/extensions.dart';
+import 'package:auth_bloc/core/helpers/extensions.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gap/gap.dart';
-import '/../../logic/cubit/auth_cubit.dart';
-import '/../../theming/styles.dart';
+import 'package:auth_bloc/features/auth/logic/auth_cubit.dart';
+import 'package:auth_bloc/core/theming/styles.dart';
 
 class ForgetScreen extends StatefulWidget {
   const ForgetScreen({super.key});

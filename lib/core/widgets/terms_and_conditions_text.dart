@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../theming/styles.dart';
+import 'package:auth_bloc/core/theming/styles.dart';
 
 class TermsAndConditionsText extends StatelessWidget {
   const TermsAndConditionsText({super.key});

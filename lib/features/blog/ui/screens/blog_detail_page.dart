@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'blog_screen.dart'; // Import the Blog model
+import 'package:auth_bloc/features/blog/ui/screens/blog_screen.dart'; // Import the Blog model
 
 class BlogDetailPage extends StatelessWidget {
   final Blog blog;

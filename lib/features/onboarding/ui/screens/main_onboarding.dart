@@ -1,8 +1,8 @@
 // onboarding_screen.dart (Create a new file named this, or place it in a relevant folder)
-import 'package:auth_bloc/screens/onboarding/screens/onboarding_screens.dart';
+import 'package:auth_bloc/features/onboarding/ui/screens/screens/onboarding_screens.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:auth_bloc/routing/routes.dart';
+import 'package:auth_bloc/core/routing/routes.dart';
 
 // mainOnboarding widget
 class mainOnboarding extends StatefulWidget {

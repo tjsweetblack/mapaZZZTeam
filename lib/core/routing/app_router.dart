@@ -1,19 +1,19 @@
 import 'package:auth_bloc/main.dart';
-import 'package:auth_bloc/screens/login/ui/phone.dart';
-import 'package:auth_bloc/screens/main_screen.dart';
-import 'package:auth_bloc/screens/profile/profile.dart';
-import 'package:auth_bloc/screens/quiz/quiz_start.dart';
-import 'package:auth_bloc/screens/splash_screen/splash.dart';
+import 'package:auth_bloc/features/auth/ui/screens/ui/phone.dart';
+import 'package:auth_bloc/features/map/ui/screens/main_screen.dart';
+import 'package:auth_bloc/features/profile/ui/screens/profile.dart';
+import 'package:auth_bloc/features/quiz/ui/screens/quiz_start.dart';
+import 'package:auth_bloc/features/splash_screen/ui/screens/splash.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../logic/cubit/auth_cubit.dart';
-import '../screens/create_password/ui/create_password.dart';
-import '../screens/forget/ui/forget_screen.dart';
-import '../screens/login/ui/login_screen.dart';
-import '../screens/onboarding/main_onboarding.dart';
-import '../screens/signup/ui/sign_up_sceen.dart';
-import 'routes.dart';
+import 'package:auth_bloc/features/auth/logic/auth_cubit.dart';
+import 'package:auth_bloc/screens/create_password/ui/create_password.dart';
+import 'package:auth_bloc/screens/forget/ui/forget_screen.dart';
+import 'package:auth_bloc/features/auth/ui/screens/ui/login_screen.dart';
+import 'package:auth_bloc/features/onboarding/ui/screens/main_onboarding.dart';
+import 'package:auth_bloc/screens/signup/ui/sign_up_sceen.dart';
+import 'package:auth_bloc/core/routing/routes.dart';
 
 class AppRouter {
   late AuthCubit authCubit;

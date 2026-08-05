@@ -1,5 +1,5 @@
-import 'package:auth_bloc/screens/quiz/questions.dart';
-import 'package:auth_bloc/screens/quiz/result_quiz.dart';
+import 'package:auth_bloc/features/quiz/ui/screens/questions.dart';
+import 'package:auth_bloc/features/quiz/ui/screens/result_quiz.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';

@@ -1,6 +1,6 @@
 // ignore_for_file: must_be_immutable
 
-import 'package:auth_bloc/helpers/extensions.dart';
+import 'package:auth_bloc/core/helpers/extensions.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -10,10 +10,10 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../core/widgets/login_and_signup_animated_form.dart';
 import '../../../core/widgets/terms_and_conditions_text.dart';
-import '../../../helpers/rive_controller.dart';
-import '../../../logic/cubit/auth_cubit.dart';
-import '../../../routing/routes.dart';
-import '../../../theming/styles.dart';
+import 'package:auth_bloc/core/helpers/rive_controller.dart';
+import 'package:auth_bloc/features/auth/logic/auth_cubit.dart';
+import 'package:auth_bloc/core/routing/routes.dart';
+import 'package:auth_bloc/core/theming/styles.dart';
 
 class CreatePassword extends StatelessWidget {
   late GoogleSignInAccount googleUser;

@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:auth_bloc/api/firebase_api.dart';
-import 'package:auth_bloc/cubits/language_cubit.dart';
+import 'package:auth_bloc/core/api/firebase_api.dart';
+import 'package:auth_bloc/core/state/language_cubit.dart';
 import 'package:auth_bloc/firebase_options.dart';
 import 'package:auth_bloc/l10n/app_localizations.dart';
-import 'package:auth_bloc/logic/cubit/auth_cubit.dart';
-import 'package:auth_bloc/screens/splash_screen/splash.dart';
+import 'package:auth_bloc/features/auth/logic/auth_cubit.dart';
+import 'package:auth_bloc/features/splash_screen/ui/screens/splash.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Import cloud_firestore
 import 'package:device_preview/device_preview.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -23,9 +23,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:google_maps_flutter_ios/google_maps_flutter_ios.dart';
-import 'routing/app_router.dart';
-import 'routing/routes.dart';
-import 'theming/colors.dart';
+import 'core/routing/app_router.dart';
+import 'core/routing/routes.dart';
+import 'core/theming/colors.dart';
 
 late String initialRoute;
 

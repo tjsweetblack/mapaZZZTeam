@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
+import 'package:auth_bloc/features/quiz/ui/screens/screens/home_screen.dart';
 
 class ResultScreen extends StatelessWidget {
   final String level;

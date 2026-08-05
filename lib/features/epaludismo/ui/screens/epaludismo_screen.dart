@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
-import 'epaludismo_result_screen.dart'; // Assuming epaludismo_result_screen.dart is the file name
+import 'package:auth_bloc/features/epaludismo/ui/screens/epaludismo_result_screen.dart'; // Assuming epaludismo_result_screen.dart is the file name
 
 class EPaldudismoScreen extends StatefulWidget {
   const EPaldudismoScreen({super.key});

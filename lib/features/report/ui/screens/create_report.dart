@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:auth_bloc/screens/main_screen.dart';
+import 'package:auth_bloc/features/map/ui/screens/main_screen.dart';
 import 'package:camera/camera.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -10,7 +10,10 @@ import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
-import 'report_details.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:auth_bloc/features/report/ui/screens/report_details.dart';
+
+const _kPhotoAnalysisConsentKey = 'report_photo_ai_consent_accepted_v1';
 
 enum LoadingStage {
   uploadingImage,
@@ -36,7 +39,7 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
   @override
   void initState() {
     super.initState();
-    _setupCamera();
+    _ensurePhotoAnalysisConsent();
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -53,6 +56,52 @@ class _CreateReportCameraScreenState extends State<CreateReportCameraScreen>
       _initializeCameraControllerFuture = null;
     } else if (state == AppLifecycleState.resumed) {
       _setupCamera();
+    }
+  }
+
+  // Ensures the user has explicitly acknowledged, at least once, that report
+  // photos are sent to third-party AI services (Google Gemini) for automated
+  // analysis before the camera is engaged. This is the in-app consent/notice
+  // step required alongside the OS-level camera permission prompt.
+  Future<void> _ensurePhotoAnalysisConsent() async {
+    final prefs = await SharedPreferences.getInstance();
+    final alreadyAccepted = prefs.getBool(_kPhotoAnalysisConsentKey) ?? false;
+    if (alreadyAccepted) {
+      _setupCamera();
+      return;
+    }
+    if (!mounted) return;
+    final accepted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Análise da foto por IA'),
+        content: const SingleChildScrollView(
+          child: Text(
+            'A foto que vai tirar é enviada de forma segura (HTTPS) a serviços de '
+            'inteligência artificial de terceiros (Google Gemini) para verificar e '
+            'classificar automaticamente o risco de foco de mosquitos.\n\n'
+            'A foto e a localização ficam associadas ao seu reporte. Só continue se '
+            'concordar com este processamento.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Concordo e continuar'),
+          ),
+        ],
+      ),
+    );
+    if (accepted == true) {
+      await prefs.setBool(_kPhotoAnalysisConsentKey, true);
+      _setupCamera();
+    } else if (mounted) {
+      Navigator.of(context).pop();
     }
   }
 
