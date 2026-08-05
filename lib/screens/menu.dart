@@ -164,6 +164,21 @@ Widget buildAppDrawer(BuildContext context) {
                   },
                 ),
                 ListTile(
+                  leading: const Icon(Icons.help_outline, color: Colors.red),
+                  title: const Text(
+                    'Como usar o app',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, Routes.howToUseApp);
+                  },
+                ),
+                ListTile(
                   leading: const Icon(Icons.info_outline, color: Colors.red),
                   title: const Text(
                     'Sobre',

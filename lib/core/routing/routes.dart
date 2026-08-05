@@ -11,4 +11,5 @@ class Routes {
   static const String onboardingScreen = 'onboardingScreen';
   static const String splashScreen = 'splashScreen';
   static const String quizStart = 'quizStart';
+  static const String howToUseApp = 'howToUseApp';
 }

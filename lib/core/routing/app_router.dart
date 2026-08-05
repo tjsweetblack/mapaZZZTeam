@@ -1,5 +1,6 @@
 import 'package:auth_bloc/main.dart';
 import 'package:auth_bloc/features/auth/ui/screens/ui/phone.dart';
+import 'package:auth_bloc/features/help/ui/screens/how_to_use_app_screen.dart';
 import 'package:auth_bloc/features/map/ui/screens/main_screen.dart';
 import 'package:auth_bloc/features/profile/ui/screens/profile.dart';
 import 'package:auth_bloc/features/quiz/ui/screens/quiz_start.dart';
@@ -74,6 +75,9 @@ class AppRouter {
             child: const QuizScreen(),
           ),
         );
+
+      case Routes.howToUseApp:
+        return MaterialPageRoute(builder: (_) => const HowToUseAppScreen());
 
       case Routes.splashScreen:
         return MaterialPageRoute(
