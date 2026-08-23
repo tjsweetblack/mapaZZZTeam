@@ -10,14 +10,22 @@ const upload = multer({ dest: 'uploads/' });
 const MODEL_NAME = 'gemini-1.5-flash-latest';
 const API_KEY = process.env.GEMINI_API_KEY;
 
-router.post('/generate-solution', upload.single('image'), async (req, res) => {
+function requireSharedSecret(req, res, next) {
+  const expected = process.env.REPORT_API_SHARED_SECRET;
+  if (!expected || req.header('x-api-key') !== expected) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+}
+
+router.post('/generate-solution', requireSharedSecret, upload.single('image'), async (req, res) => {
+  const imagePath = req.file?.path;
   try {
     const { title, description } = req.body;
     if (!req.file || !title || !description) {
       return res.status(400).json({ error: 'Missing image, title, or description.' });
     }
 
-    const imagePath = req.file.path;
     const imageBuffer = fs.readFileSync(imagePath);
     const imageBase64 = imageBuffer.toString('base64');
 
@@ -50,13 +58,18 @@ router.post('/generate-solution', upload.single('image'), async (req, res) => {
       ],
     });
 
-    fs.unlinkSync(imagePath); // Clean up temp file
-
     const solution = result.response.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'Não foi possível gerar uma solução.';
     res.json({ solution });
   } catch (error) {
     console.error('Error generating solution:', error);
     res.status(500).json({ error: 'Failed to generate solution.' });
+  } finally {
+    // Always remove the temp file from disk, even if generation failed.
+    if (imagePath) {
+      fs.unlink(imagePath, (err) => {
+        if (err) console.error('Error deleting temp upload:', err);
+      });
+    }
   }
 });
 

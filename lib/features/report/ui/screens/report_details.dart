@@ -1,6 +1,6 @@
-import 'package:auth_bloc/logic/cubit/auth_cubit.dart';
-import 'package:auth_bloc/screens/main_screen.dart';
-import 'package:auth_bloc/screens/report/locator_screen.dart';
+import 'package:auth_bloc/features/auth/logic/auth_cubit.dart';
+import 'package:auth_bloc/features/map/ui/screens/main_screen.dart';
+import 'package:auth_bloc/features/report/ui/screens/locator_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -51,7 +51,11 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
     _checkIfUserResolved(); // Check if the current user has already marked this report as resolved
   }
 
-  // Fetches the name of the user who created the report
+  // Fetches only the rank of the user who created the report and derives an
+  // anonymized display label from it. The real 'name' field is intentionally
+  // never requested here: reports are presented to other users as anonymous
+  // per the app's Terms of Service, so the author's identity must not be
+  // resolvable from this screen.
   Future<void> _fetchUserName() async {
     setState(() {
       _isLoadingUser = true;
@@ -63,26 +67,18 @@ class _ReportDetailPageState extends State<ReportDetailPage> {
           .collection('users')
           .doc(widget.report['userId']) // Use the userId from the report data
           .get();
-      if (userDoc.exists) {
-        final userData = userDoc.data();
-        setState(() {
-          _userName = userData?['name'] ??
-              'Usuário Desconhecido'; // Get the user's name
-          _userRank = userData?['rank'] ??
-              'Novinho'; // Get the user's rank, default to 'Novinho' if null
-          _isLoadingUser = false;
-        });
-      } else {
-        setState(() {
-          _userName = 'Usuário Desconhecido';
-          _userRank = 'Novinho'; // Default rank if user not found
-          _isLoadingUser = false;
-        });
-      }
-    } catch (e) {
-      print("Error fetching user name/rank: $e");
+      final rank = userDoc.exists
+          ? (userDoc.data()?['rank'] as String? ?? 'Novinho')
+          : 'Novinho';
       setState(() {
-        _userName = 'Erro ao Carregar Usuário';
+        _userRank = rank;
+        _userName = 'Membro da comunidade';
+        _isLoadingUser = false;
+      });
+    } catch (e) {
+      print("Error fetching user rank: $e");
+      setState(() {
+        _userName = 'Membro da comunidade';
         _userRank = 'Novinho'; // Default rank on error
         _isLoadingUser = false;
       });

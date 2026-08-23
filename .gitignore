@@ -4,6 +4,11 @@
 *.pyc
 *.swp
 .DS_Store
+
+# Secrets - never commit API keys
+.env
+*/.env
+**/uploads/
 .atom/
 .build/
 .buildlog/
@@ -43,3 +48,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Assinatura Android (nunca commitar)
+android/key.properties
+**/*.jks
+**/*.keystore

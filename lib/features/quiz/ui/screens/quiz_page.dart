@@ -1,10 +1,11 @@
-import 'package:auth_bloc/screens/quiz/questions.dart';
-import 'package:auth_bloc/screens/quiz/result_quiz.dart';
+import 'package:auth_bloc/features/quiz/ui/screens/questions.dart';
+import 'package:auth_bloc/features/quiz/ui/screens/result_quiz.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'dart:async';
+import 'package:auth_bloc/core/analytics/analytics_service.dart';
 
 class MalariaQuizScreen extends StatefulWidget {
   final String language;
@@ -120,6 +121,7 @@ class _MalariaQuizScreenState extends State<MalariaQuizScreen> {
   void _submitQuiz() {
     _timer?.cancel(); // Cancel the timer
     final int totalPointsEarned = _correctAnswersCount * 2;
+    AnalyticsService.quizCompleted(score: totalPointsEarned);
 
     Navigator.pushReplacement(
       context,

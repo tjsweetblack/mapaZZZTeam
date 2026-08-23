@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:ui' as ui;
 import 'dart:io';
 
-import 'package:auth_bloc/screens/report/report_details.dart';
-import 'package:auth_bloc/utils/marker_utils.dart'; // Import the utility file
+import 'package:auth_bloc/features/report/ui/screens/report_details.dart';
+import 'package:auth_bloc/core/utils/marker_utils.dart'; // Import the utility file
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

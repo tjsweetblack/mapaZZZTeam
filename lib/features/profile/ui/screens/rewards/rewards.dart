@@ -1,10 +1,10 @@
-import 'package:auth_bloc/screens/profile/rewards/logic.dart';
-import 'package:auth_bloc/screens/profile/rewards/widget/buildReward.dart';
+import 'package:auth_bloc/features/profile/ui/screens/rewards/logic.dart';
+import 'package:auth_bloc/features/profile/ui/screens/rewards/widget/buildReward.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
-import 'package:auth_bloc/screens/profile/rewards/reward_pending.dart';
+import 'package:auth_bloc/features/profile/ui/screens/rewards/reward_pending.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:io';

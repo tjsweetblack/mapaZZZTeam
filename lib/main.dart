@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:auth_bloc/api/firebase_api.dart';
-import 'package:auth_bloc/cubits/language_cubit.dart';
+import 'package:auth_bloc/core/api/firebase_api.dart';
+import 'package:auth_bloc/core/state/language_cubit.dart';
 import 'package:auth_bloc/firebase_options.dart';
 import 'package:auth_bloc/l10n/app_localizations.dart';
-import 'package:auth_bloc/logic/cubit/auth_cubit.dart';
-import 'package:auth_bloc/screens/splash_screen/splash.dart';
+import 'package:auth_bloc/features/auth/logic/auth_cubit.dart';
+import 'package:auth_bloc/features/splash_screen/ui/screens/splash.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Import cloud_firestore
 import 'package:device_preview/device_preview.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -23,9 +23,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:google_maps_flutter_ios/google_maps_flutter_ios.dart';
-import 'routing/app_router.dart';
-import 'routing/routes.dart';
-import 'theming/colors.dart';
+import 'core/routing/app_router.dart';
+import 'core/routing/routes.dart';
+import 'core/theming/colors.dart';
+import 'package:auth_bloc/core/analytics/analytics_service.dart';
 
 late String initialRoute;
 
@@ -250,6 +251,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       }
 
       print("Risk level changed: $riskMessage");
+      if (highestRiskLevel > 0) {
+        await AnalyticsService.zoneAlert(riskLevel: highestRiskLevel);
+      }
       _showProximityNotification(highestRiskLevel);
     } catch (e) {
       print("Error checking proximity: $e");
@@ -260,38 +264,55 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   }
 
   Future<void> _showProximityNotification(int riskLevel) async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
-        AndroidNotificationDetails(
-      'proximity_channel', // Unique channel ID
-      'Proximity Alerts', // Channel name
-      channelDescription: 'Notifications for proximity to risk zones',
-      importance: Importance.high,
-      priority: Priority.high,
-      showWhen: false,
-    );
-    const NotificationDetails platformChannelSpecifics =
-        NotificationDetails(android: androidPlatformChannelSpecifics);
-
+    String notificationTitle;
     String notificationMessage;
     switch (riskLevel) {
       case 1:
-        notificationMessage = 'Estás em uma zona de baixo risco.';
+        notificationTitle = 'Zona de baixo risco';
+        notificationMessage =
+            'Mantenha a prevenção: use repelente, elimine água parada e mantenha portas e janelas protegidas.';
         break;
       case 2:
-        notificationMessage = 'Estás em uma zona de médio risco.';
+        notificationTitle = 'Zona de médio risco';
+        notificationMessage =
+            'Reforce a proteção: use roupa comprida, aplique repelente conforme o rótulo e evite locais com muitos mosquitos.';
         break;
       case 3:
-        notificationMessage = 'Estás em uma zona de alto risco.';
+        notificationTitle = 'Zona de alto risco';
+        notificationMessage =
+            'Proteja-se agora: vista roupa comprida, use repelente conforme o rótulo, use redes ou telas e elimine água parada perto de si.';
         break;
       default: // riskLevel is 0 or any other unexpected value
-        notificationMessage = 'Estás em uma área sem risco.';
+        notificationTitle = 'Área sem risco identificado';
+        notificationMessage =
+            'Continue a prevenir: elimine água parada e use proteção contra mosquitos quando necessário.';
         break;
     }
 
+    final AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+      'proximity_channel',
+      'Alertas de zonas de risco',
+      channelDescription:
+          'Alertas de proximidade com recomendações de prevenção',
+      importance: Importance.high,
+      priority: Priority.high,
+      showWhen: false,
+      styleInformation: BigTextStyleInformation(notificationMessage),
+    );
+    final NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+      iOS: const DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      ),
+    );
+
     await flutterLocalNotificationsPlugin.show(
       0, // Notification ID
-      'Risco', // Notification Title
-      notificationMessage, // Notification Body (the specific risk message)
+      notificationTitle,
+      notificationMessage,
       platformChannelSpecifics,
       payload: 'proximity_notification',
     );
@@ -370,7 +391,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   Future<void> _initLocalNotifications() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('app_icon'); // Replace 'app_icon'
+        AndroidInitializationSettings('@mipmap/ic_launcher');
     const DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings();
     const InitializationSettings initializationSettings =
@@ -560,6 +581,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         primarySwatch: Colors.blue,
                         visualDensity: VisualDensity.adaptivePlatformDensity,
                       ),
+                      navigatorObservers: [AnalyticsService.observer],
                       onGenerateRoute: widget.router.generateRoute,
                       debugShowCheckedModeBanner: false,
                       initialRoute: initialRoute,

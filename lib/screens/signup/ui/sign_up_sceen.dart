@@ -1,13 +1,13 @@
-import 'package:auth_bloc/screens/login/ui/login_screen.dart';
+import 'package:auth_bloc/features/auth/ui/screens/ui/login_screen.dart';
 import 'package:auth_bloc/screens/signup/ui/create_password.dart';
 import 'package:auth_bloc/screens/signup/ui/terms_of_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../logic/cubit/auth_cubit.dart';
-import '../../../routing/routes.dart';
-import '../../../theming/styles.dart';
+import 'package:auth_bloc/features/auth/logic/auth_cubit.dart';
+import 'package:auth_bloc/core/routing/routes.dart';
+import 'package:auth_bloc/core/theming/styles.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});

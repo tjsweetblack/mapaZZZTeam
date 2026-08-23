@@ -1,18 +1,18 @@
-import 'package:auth_bloc/cubits/language_cubit.dart';
+import 'package:auth_bloc/core/state/language_cubit.dart';
 import 'package:auth_bloc/l10n/app_localizations.dart';
 import 'package:auth_bloc/screens/about/about.dart';
-import 'package:auth_bloc/screens/blog/blog_screen.dart';
-import 'package:auth_bloc/screens/epaludismo/epaludismo_screen.dart';
-import 'package:auth_bloc/screens/profile/profile.dart';
-import 'package:auth_bloc/screens/profile/rewards/rewards.dart';
-import 'package:auth_bloc/screens/quiz/quiz_page.dart';
-import 'package:auth_bloc/screens/quiz/quiz_start.dart';
-import 'package:auth_bloc/screens/word_puzzle.dart/screens/home_screen.dart';
-import 'package:auth_bloc/screens/word_puzzle.dart/screens/welcome_screen.dart';
+import 'package:auth_bloc/features/blog/ui/screens/blog_screen.dart';
+import 'package:auth_bloc/features/epaludismo/ui/screens/epaludismo_screen.dart';
+import 'package:auth_bloc/features/profile/ui/screens/profile.dart';
+import 'package:auth_bloc/features/profile/ui/screens/rewards/rewards.dart';
+import 'package:auth_bloc/features/quiz/ui/screens/quiz_page.dart';
+import 'package:auth_bloc/features/quiz/ui/screens/quiz_start.dart';
+import 'package:auth_bloc/features/quiz/ui/screens/screens/home_screen.dart';
+import 'package:auth_bloc/features/quiz/ui/screens/screens/welcome_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:auth_bloc/logic/cubit/auth_cubit.dart';
-import 'package:auth_bloc/routing/routes.dart';
+import 'package:auth_bloc/features/auth/logic/auth_cubit.dart';
+import 'package:auth_bloc/core/routing/routes.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 Future<void> _launchPrivacyPolicy() async {
@@ -161,6 +161,21 @@ Widget buildAppDrawer(BuildContext context) {
                         builder: (context) => const RewardsPage(),
                       ),
                     );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.help_outline, color: Colors.red),
+                  title: const Text(
+                    'Como usar o app',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushNamed(context, Routes.howToUseApp);
                   },
                 ),
                 ListTile(

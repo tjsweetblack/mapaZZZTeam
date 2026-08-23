@@ -4,7 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart'; // Import Cache
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:io';
-import 'blog_detail_page.dart';
+import 'package:auth_bloc/features/blog/ui/screens/blog_detail_page.dart';
 
 class Blog {
   final String title;

@@ -26,8 +26,14 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>GMSApiKey</key>
 	<string>AIzaSyCoqbjFQjZJSbU5-3xk7A9VqiDiMLKPeyM</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>This app needs camera access to take photos for malaria reports and documentation.</string>
 	<key>NSMicrophoneUsageDescription</key>
@@ -56,9 +62,7 @@
 	<true/>
 	<key>UIBackgroundModes</key>
 	<array>
-		<string>background-processing</string>
-		<string>background-fetch</string>
-		<string>background-app-refresh</string>
+		<string>remote-notification</string>
 	</array>
 	<key>UIApplicationExitsOnSuspend</key>
 	<false/>

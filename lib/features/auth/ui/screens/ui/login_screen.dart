@@ -1,8 +1,8 @@
-import 'package:auth_bloc/helpers/extensions.dart';
+import 'package:auth_bloc/core/helpers/extensions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../logic/cubit/auth_cubit.dart';
-import '../../../routing/routes.dart';
+import 'package:auth_bloc/features/auth/logic/auth_cubit.dart';
+import 'package:auth_bloc/core/routing/routes.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

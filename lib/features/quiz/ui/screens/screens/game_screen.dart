@@ -1,9 +1,9 @@
 import 'dart:math';
 
-import 'package:auth_bloc/helpers/build_divider.dart'; // Ensure this import is correct
-import 'package:auth_bloc/screens/word_puzzle.dart/models/word_level.dart';
-import 'package:auth_bloc/screens/word_puzzle.dart/screens/result_screen.dart';
-import 'package:auth_bloc/screens/word_puzzle.dart/widgets/find_the_word_game.dart'; // Your FindTheWord widget
+import 'package:auth_bloc/core/helpers/build_divider.dart'; // Ensure this import is correct
+import 'package:auth_bloc/features/quiz/ui/screens/models/word_level.dart';
+import 'package:auth_bloc/features/quiz/ui/screens/screens/result_screen.dart';
+import 'package:auth_bloc/features/quiz/ui/screens/widgets/find_the_word_game.dart'; // Your FindTheWord widget
 import 'package:flutter/material.dart';
 
 class GameScreen extends StatelessWidget {

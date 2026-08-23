@@ -1,8 +1,8 @@
-import 'package:auth_bloc/helpers/extensions.dart';
+import 'package:auth_bloc/core/helpers/extensions.dart';
 import 'package:flutter/material.dart';
 
-import '../../../../routing/routes.dart';
-import '../../../../theming/styles.dart';
+import 'package:auth_bloc/core/routing/routes.dart';
+import 'package:auth_bloc/core/theming/styles.dart';
 
 class DoNotHaveAccountText extends StatelessWidget {
   const DoNotHaveAccountText({super.key});

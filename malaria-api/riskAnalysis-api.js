@@ -7,7 +7,15 @@ const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-app.post('/analyze-risk', upload.single('image'), async (req, res) => {
+function requireSharedSecret(req, res, next) {
+  const expected = process.env.REPORT_API_SHARED_SECRET;
+  if (!expected || req.header('x-api-key') !== expected) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+}
+
+app.post('/analyze-risk', requireSharedSecret, upload.single('image'), async (req, res) => {
   console.log('Received POST /analyze-risk');
   if (!req.file) {
     return res.status(400).json({ error: 'No image uploaded' });

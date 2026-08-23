@@ -5,7 +5,7 @@
 //import 'package:myapp/screens/home_screen.dart'; // Importa sua tela de níveis atual
 //import 'package:myapp/screens/home_screen.dart  '
 
-import 'package:auth_bloc/screens/word_puzzle.dart/screens/home_screen.dart';
+import 'package:auth_bloc/features/quiz/ui/screens/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 
 class WelcomeScreen extends StatelessWidget {
