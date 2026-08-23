@@ -65,7 +65,10 @@ android {
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            // Sem android/key.properties, assina com a chave de debug para que
+            // seja possivel gerar um APK de piloto sem configuracao extra.
+            // Com o ficheiro presente usa a chave real (exigida pela Play Store).
+            signingConfig = keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
             minifyEnabled false
             shrinkResources false
         }
