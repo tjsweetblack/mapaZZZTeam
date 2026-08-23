@@ -1,3 +1,4 @@
+import 'package:auth_bloc/core/analytics/analytics_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -95,6 +96,8 @@ class AuthCubit extends Cubit<AuthState> {
       } catch (e) {
         print('Failed to update lastLogin: $e');
       }
+      await AnalyticsService.setUser(userCredential.user!.uid);
+      await AnalyticsService.login('email');
       emit(UserSignIn());
     } else {
       await _auth.signOut();
@@ -128,6 +131,8 @@ class AuthCubit extends Cubit<AuthState> {
 
         emit(IsNewUser(googleUser: googleUser, credential: credential));
       } else {
+        await AnalyticsService.setUser(authResult.user?.uid);
+        await AnalyticsService.login('google');
         emit(UserSignIn());
       }
     } on FirebaseAuthException catch (_) {
@@ -189,6 +194,7 @@ class AuthCubit extends Cubit<AuthState> {
           // Add cart ID to user document
         });
       }
+      await AnalyticsService.signUp('email');
       emit(UserSingupButNotVerified());
     } on FirebaseAuthException catch (e) {
       if (e.code == 'weak-password') {

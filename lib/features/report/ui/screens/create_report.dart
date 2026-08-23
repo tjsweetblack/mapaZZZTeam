@@ -12,6 +12,7 @@ import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:auth_bloc/features/report/ui/screens/report_details.dart';
+import 'package:auth_bloc/core/analytics/analytics_service.dart';
 
 const _kPhotoAnalysisConsentKey = 'report_photo_ai_consent_accepted_v1';
 
@@ -776,10 +777,13 @@ class _CreateReportDetailsScreenState extends State<CreateReportDetailsScreen> {
             'status': 'active',
             'title': title,
             'userId': userId,
+            'createdAt': FieldValue.serverTimestamp(),
           });
 
           String reportId = reportRef.id;
           await reportRef.update({'id': reportId});
+
+          await AnalyticsService.reportCreated(riskLevel: riskLevel);
 
           // Update user points
           DocumentSnapshot userSnapshot = await FirebaseFirestore.instance

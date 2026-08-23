@@ -26,6 +26,7 @@ import 'package:google_maps_flutter_ios/google_maps_flutter_ios.dart';
 import 'core/routing/app_router.dart';
 import 'core/routing/routes.dart';
 import 'core/theming/colors.dart';
+import 'package:auth_bloc/core/analytics/analytics_service.dart';
 
 late String initialRoute;
 
@@ -250,6 +251,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       }
 
       print("Risk level changed: $riskMessage");
+      if (highestRiskLevel > 0) {
+        await AnalyticsService.zoneAlert(riskLevel: highestRiskLevel);
+      }
       _showProximityNotification(highestRiskLevel);
     } catch (e) {
       print("Error checking proximity: $e");
@@ -387,7 +391,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   Future<void> _initLocalNotifications() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('app_icon'); // Replace 'app_icon'
+        AndroidInitializationSettings('@mipmap/ic_launcher');
     const DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings();
     const InitializationSettings initializationSettings =
@@ -577,6 +581,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                         primarySwatch: Colors.blue,
                         visualDensity: VisualDensity.adaptivePlatformDensity,
                       ),
+                      navigatorObservers: [AnalyticsService.observer],
                       onGenerateRoute: widget.router.generateRoute,
                       debugShowCheckedModeBanner: false,
                       initialRoute: initialRoute,

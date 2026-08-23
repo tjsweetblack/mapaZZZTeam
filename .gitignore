@@ -48,3 +48,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Assinatura Android (nunca commitar)
+android/key.properties
+**/*.jks
+**/*.keystore
