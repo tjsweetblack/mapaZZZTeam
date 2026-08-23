@@ -4,15 +4,25 @@ Branch: `fix/preparacao-piloto`
 
 ## Opção A — Sem instalar nada (recomendada)
 
-O repositório tem um workflow do GitHub Actions que compila o APK na cloud.
+O repositório compila o APK no GitHub Actions.
+
+**O build arranca sozinho a cada push** para `main`, `dcaliqui`, `integracao/*`
+ou `fix/*`. Depois de fazer push:
 
 1. GitHub → separador **Actions**
-2. **Build APK** → **Run workflow** → escolher a branch `fix/preparacao-piloto`
+2. Abrir o run mais recente de **Build APK** (arranca em segundos)
 3. Esperar ~8 minutos
-4. Abrir o run → secção **Artifacts** no fundo → descarregar `mapazzz-apk`
+4. Secção **Artifacts**, no fundo da página do run → descarregar `mapazzz-apk`
 
 O ficheiro `app-release.apk` sai de lá pronto a instalar. Distribuir por WhatsApp,
 Drive ou Firebase App Distribution.
+
+### Porque é que o botão "Run workflow" não aparece
+
+O GitHub só mostra o botão de execução manual quando o ficheiro do workflow já
+existe na **branch por omissão** do repositório (`main`). Enquanto este trabalho
+viver só numa branch de funcionalidade, o botão não aparece — usa-se o push, que
+funciona à mesma. Assim que isto for integrado no `main`, o botão passa a estar lá.
 
 ## Opção B — Build local
 

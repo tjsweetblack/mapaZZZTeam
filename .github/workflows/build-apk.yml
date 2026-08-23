@@ -1,12 +1,19 @@
 name: Build APK
 
 # Gera um APK instalavel sem que ninguem precise de Android Studio na maquina.
-# Correr manualmente em: Actions > Build APK > Run workflow
 # O APK fica em "Artifacts", no fundo da pagina do run.
+#
+# Corre sozinho a cada push nas branches abaixo. O botao "Run workflow" so
+# aparece no separador Actions depois deste ficheiro estar na branch por
+# omissao do repositorio (main) -- ate la, usa-se o push.
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
+      - dcaliqui
+      - "integracao/**"
+      - "fix/**"
 
 jobs:
   build:
