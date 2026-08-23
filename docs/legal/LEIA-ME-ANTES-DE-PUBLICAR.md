@@ -9,20 +9,21 @@ Os campos por preencher aparecem realçados a amarelo na página. São 5:
 identidade legal do responsável, endereço, e-mail de contacto, data e idade mínima.
 **Enquanto estiverem realçados, a página não está pronta.**
 
-## Bloqueio: esta política descreve a branch `dcaliqui`, não a `main`
+## Condição para publicar: a app em produção tem de vir desta branch
 
-Duas afirmações do texto só são verdadeiras no código da branch `dcaliqui`:
+Duas afirmações do texto dependem de código que **não existe na `main`**:
 
-| Afirmação | `main` | `dcaliqui` |
+| Afirmação | `main` | esta branch (`integracao/piloto`, base `dcaliqui`) |
 |---|---|---|
 | Secção 4 — pede confirmação antes de enviar a foto para IA | ❌ não existe | ✅ `_ensurePhotoAnalysisConsent` |
 | Secção 8 — reportes aparecem como "Membro da comunidade" | ❌ mostra o nome real | ✅ implementado |
 
-**Publicar esta política enquanto a app distribuída for a `main` significa afirmar
-publicamente salvaguardas que não existem** — exatamente o problema da
-"anonimização" que o documento de conformidade identificou.
+Nesta branch ambas são verdadeiras, pelo que a política pode ser publicada
+assim que a app distribuída aos utilizadores for construída a partir daqui.
 
-Ordem correta: `dcaliqui` entra em produção primeiro, a política publica-se depois.
+**Não publicar enquanto se distribuir a `main`** — seria afirmar publicamente
+salvaguardas que essa versão não tem, exatamente o problema da "anonimização"
+que o documento de conformidade identificou.
 
 ## Correções feitas ao rascunho, verificadas no código
 
