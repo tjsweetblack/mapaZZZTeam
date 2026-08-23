@@ -19,6 +19,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v5
 
@@ -63,9 +65,25 @@ jobs:
         working-directory: android
         run: ./gradlew :app:assembleRelease --stacktrace --no-daemon 2>&1 | tail -80
 
-      - name: Publicar APK
+      - name: Publicar APK (artifact, so para quem tem acesso ao repo)
         uses: actions/upload-artifact@v4
         with:
           name: mapazzz-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           retention-days: 30
+
+      # Publica o APK numa release de tag fixa "piloto". O link resultante e
+      # publico, permanente e nao muda entre builds -- partilha-se uma vez e
+      # cada novo build substitui o ficheiro no mesmo endereco:
+      #   https://github.com/${{ github.repository }}/releases/download/piloto/mapazzz.apk
+      - name: Publicar link partilhavel
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk mapazzz.apk
+          gh release create piloto \
+            --title "MapaZZZ - build de piloto" \
+            --notes "APK para teste de campo, atualizado automaticamente a cada build da main. Assinado com chave de debug: instalavel diretamente, nao serve para a Play Store." \
+            || echo "release ja existe, apenas a substituir o ficheiro"
+          gh release upload piloto mapazzz.apk --clobber
