@@ -1,13 +1,14 @@
 import 'package:auth_bloc/features/profile/ui/screens/rewards/logic.dart';
 import 'package:auth_bloc/features/profile/ui/screens/rewards/widget/buildReward.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:auth_bloc/features/profile/ui/screens/rewards/reward_pending.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:io';
 
 class RewardsPage extends StatefulWidget {
   const RewardsPage({super.key});
@@ -20,11 +21,13 @@ class _RewardsPageState extends State<RewardsPage> {
   List<Map<String, dynamic>> _cachedRewards = [];
   Map<String, dynamic>? _cachedUserData;
   bool _isOffline = false;
+  late Future<bool> _connectivityFuture;
 
   @override
   void initState() {
     super.initState();
     _loadCachedData();
+    _connectivityFuture = _checkConnectivity();
   }
 
   // Load cached data from SharedPreferences
@@ -73,13 +76,34 @@ class _RewardsPageState extends State<RewardsPage> {
     }
   }
 
-  // Check internet connectivity
+  // Verify the Firebase service used by this page instead of relying on DNS
+  // resolution for Google, which can be blocked even when Firestore is usable.
   Future<bool> _checkConnectivity() async {
+    // Browsers block direct HTTP probes to this endpoint through CORS. The
+    // Firestore stream below is the authoritative connection check on web.
+    if (kIsWeb) return true;
+
     try {
-      final result = await InternetAddress.lookup('google.com');
-      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
-    } on SocketException catch (_) {
+      await http
+          .head(Uri.parse('https://firestore.googleapis.com/'))
+          .timeout(const Duration(seconds: 5));
+      return true;
+    } catch (_) {
       return false;
+    }
+  }
+
+  Future<void> _refreshConnectivity() async {
+    final future = _checkConnectivity();
+    setState(() {
+      _connectivityFuture = future;
+    });
+
+    final hasConnection = await future;
+    if (mounted) {
+      setState(() {
+        _isOffline = !hasConnection;
+      });
     }
   }
 
@@ -292,7 +316,7 @@ class _RewardsPageState extends State<RewardsPage> {
         elevation: 0,
         actions: [
           FutureBuilder<bool>(
-            future: _checkConnectivity(),
+            future: _connectivityFuture,
             builder: (context, connectivitySnapshot) {
               final isConnected = connectivitySnapshot.data ?? false;
               final userData = _isOffline ? _cachedUserData : null;
@@ -305,14 +329,7 @@ class _RewardsPageState extends State<RewardsPage> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.refresh),
-                      onPressed: () async {
-                        final hasConnection = await _checkConnectivity();
-                        if (mounted) {
-                          setState(() {
-                            _isOffline = !hasConnection;
-                          });
-                        }
-                      },
+                      onPressed: _refreshConnectivity,
                     ),
                     const Icon(Icons.star_outline, color: Colors.red),
                     const SizedBox(width: 4),
@@ -369,7 +386,7 @@ class _RewardsPageState extends State<RewardsPage> {
         ],
       ),
       body: FutureBuilder<bool>(
-        future: _checkConnectivity(),
+        future: _connectivityFuture,
         builder: (context, connectivitySnapshot) {
           if (connectivitySnapshot.connectionState == ConnectionState.waiting) {
             return const Center(
